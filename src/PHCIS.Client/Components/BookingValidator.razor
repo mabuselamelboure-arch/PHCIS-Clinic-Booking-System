@@ -1,0 +1,30 @@
+@implements IDisposable
+@code {
+    [CascadingParameter] private EditContext CurrentEditContext { get; set; } = null!;
+    private ValidationMessageStore messages = null!;
+    private readonly BookingRequestValidator validator = new();
+    protected override void OnInitialized()
+    {
+        messages = new ValidationMessageStore(CurrentEditContext);
+        CurrentEditContext.OnValidationRequested += Validate;
+        CurrentEditContext.OnFieldChanged += ClearField;
+    }
+    private void Validate(object? sender, ValidationRequestedEventArgs args)
+    {
+        messages.Clear();
+        var result = validator.Validate((CreateBookingRequest)CurrentEditContext.Model);
+        foreach (var error in result.Errors)
+            messages.Add(CurrentEditContext.Field(error.PropertyName), error.ErrorMessage);
+        CurrentEditContext.NotifyValidationStateChanged();
+    }
+    private void ClearField(object? sender, FieldChangedEventArgs args)
+    {
+        messages.Clear(args.FieldIdentifier);
+        CurrentEditContext.NotifyValidationStateChanged();
+    }
+    public void Dispose()
+    {
+        CurrentEditContext.OnValidationRequested -= Validate;
+        CurrentEditContext.OnFieldChanged -= ClearField;
+    }
+}

@@ -1,0 +1,143 @@
+@page "/"
+@inject BookingApiClient Api
+<PageTitle>Book a clinic appointment | PHCIS</PageTitle>
+<section class="intro"><p class="eyebrow">YOUR HEALTH, YOUR TIME</p><h1>Care starts with<br />an appointment.</h1><p>Choose a clinic and a time that works for you.<br />We’ll confirm your booking right here.</p></section>
+<MudAlert Severity="Severity.Info" Dense="true" Class="demo-notice">Assessment demonstration. Use fictional patient details only.</MudAlert>
+@if (loading)
+{
+    <div class="loading" role="status"><MudProgressLinear Indeterminate="true" Color="Color.Primary" /><p>Loading clinics…</p></div>
+}
+else if (confirmation is not null)
+{
+    <section class="confirmation" role="status" tabindex="-1" @ref="confirmationElement">
+        <p class="eyebrow">YOU’RE BOOKED</p><h2>Appointment confirmed</h2>
+        <p>Your appointment has been saved. Keep your reference for your visit.</p>
+        <dl><dt>Reference</dt><dd class="reference">@confirmation.Reference</dd><dt>Clinic</dt><dd>@confirmation.ClinicName<br /><span>@confirmation.ClinicAddress</span></dd><dt>Date and time</dt><dd>@ClinicTime.Local(confirmation.StartUtc).ToString("dddd, dd MMMM yyyy")<br />@TimeRange(confirmation.StartUtc, confirmation.EndUtc) SAST</dd></dl>
+        <p class="small-note">This is an on-screen confirmation. No email or SMS has been sent.</p>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StartAgain">Book another appointment</MudButton>
+    </section>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div role="alert"><MudAlert Severity="Severity.Error">@error</MudAlert></div>
+    }
+    @if (clinics.Count == 0)
+    {
+        <section class="booking-panel"><h2>No clinics available</h2><p>The demonstration data may not be loaded. Try again once the database has been prepared.</p><MudButton OnClick="LoadClinicsAsync">Retry</MudButton></section>
+    }
+    else
+    {
+        <EditForm Model="request" OnValidSubmit="BookAsync" FormName="booking">
+            <BookingValidator /><ValidationSummary />
+            <div class="booking-grid">
+                <section class="booking-panel">
+                    <p class="step">01 / CHOOSE YOUR VISIT</p><h2>Where and when?</h2>
+                    <label for="clinic">Clinic</label>
+                    <select id="clinic" value="@clinicId" @onchange="ClinicChangedAsync" disabled="@submitting">
+                        @foreach (var clinic in clinics) { <option value="@clinic.Id">@clinic.Name</option> }
+                    </select>
+                    <p class="field-hint">@clinics.FirstOrDefault(c => c.Id == clinicId)?.Address</p>
+                    <label for="visit-date">Appointment date</label>
+                    <input id="visit-date" type="date" value="@date.ToString("yyyy-MM-dd")" min="@today.ToString("yyyy-MM-dd")" max="@today.AddDays(90).ToString("yyyy-MM-dd")" @onchange="DateChangedAsync" disabled="@submitting" />
+                    <div class="slots-heading"><label id="slots-label">Available times <span>SAST</span></label><MudButton Size="Size.Small" OnClick="LoadSlotsAsync" Disabled="@(slotsLoading || submitting)">Refresh</MudButton></div>
+                    @if (slotsLoading) { <p role="status">Checking availability…</p> }
+                    else if (slots.Count == 0) { <p class="empty-state">No appointments available on this date. Try another date or clinic. Demo slots cover weekdays over the next 14 days.</p> }
+                    else
+                    {
+                        <div class="slots" role="group" aria-labelledby="slots-label">
+                            @foreach (var slot in slots)
+                            {
+                                <button type="button" class="slot @(request.TimeSlotId == slot.Id ? "selected" : "")" aria-pressed="@(request.TimeSlotId == slot.Id ? "true" : "false")" disabled="@submitting" @onclick="() => SelectSlot(slot.Id)">@ClinicTime.Local(slot.StartUtc).ToString("HH:mm")</button>
+                            }
+                        </div>
+                    }
+                    <ValidationMessage For="() => request.TimeSlotId" />
+                </section>
+                <section class="booking-panel">
+                    <p class="step">02 / YOUR DETAILS</p><h2>Who is visiting?</h2>
+                    <label for="full-name">Full name</label><InputText id="full-name" @bind-Value="request.FullName" autocomplete="name" maxlength="120" disabled="@submitting" /><ValidationMessage For="() => request.FullName" />
+                    <label for="email">Email address</label><InputText id="email" type="email" @bind-Value="request.Email" autocomplete="email" maxlength="254" disabled="@submitting" /><ValidationMessage For="() => request.Email" />
+                    <label for="phone">Contact number</label><InputText id="phone" type="tel" @bind-Value="request.Phone" autocomplete="tel" maxlength="25" disabled="@submitting" /><ValidationMessage For="() => request.Phone" />
+                    <div class="visit-summary"><strong>Your visit</strong><p>@SelectedVisit</p></div>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@(submitting || slotsLoading || request.TimeSlotId == Guid.Empty)">@(submitting ? "Confirming…" : "Confirm appointment")</MudButton>
+                    <p class="small-note">One appointment per time slot. Availability is confirmed when your booking is saved.</p>
+                </section>
+            </div>
+        </EditForm>
+    }
+}
+
+@code {
+    private List<ClinicResponse> clinics = [];
+    private List<TimeSlotResponse> slots = [];
+    private CreateBookingRequest request = new();
+    private BookingConfirmation? confirmation;
+    private Guid clinicId;
+    private readonly DateOnly today = ClinicTime.Today(TimeProvider.System);
+    private DateOnly date = ClinicTime.Today(TimeProvider.System);
+    private bool loading = true, slotsLoading, submitting, focusConfirmation;
+    private string? error;
+    private int loadVersion;
+    private ElementReference confirmationElement;
+    private string SelectedVisit => slots.FirstOrDefault(s => s.Id == request.TimeSlotId) is { } slot
+        ? $"{clinics.First(c => c.Id == clinicId).Name} · {date:dd MMM yyyy} · {TimeRange(slot.StartUtc, slot.EndUtc)} SAST"
+        : "Select a clinic, date and time to continue.";
+    private static string TimeRange(DateTime start, DateTime end) => $"{ClinicTime.Local(start):HH:mm}–{ClinicTime.Local(end):HH:mm}";
+    protected override Task OnInitializedAsync() => LoadClinicsAsync();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!focusConfirmation) return;
+        focusConfirmation = false;
+        await confirmationElement.FocusAsync();
+    }
+    private async Task LoadClinicsAsync()
+    {
+        loading = true; error = null;
+        try { clinics = await Api.GetClinicsAsync(); clinicId = clinics.FirstOrDefault()?.Id ?? Guid.Empty; await LoadSlotsAsync(); }
+        catch (Exception ex) when (ex is HttpRequestException or BookingApiException or TaskCanceledException) { error = FriendlyError(ex); }
+        finally { loading = false; }
+    }
+    private async Task ClinicChangedAsync(ChangeEventArgs args)
+    {
+        if (Guid.TryParse(args.Value?.ToString(), out var id)) { clinicId = id; await LoadSlotsAsync(); }
+    }
+    private async Task DateChangedAsync(ChangeEventArgs args)
+    {
+        if (DateOnly.TryParse(args.Value?.ToString(), out var selected)) { date = selected; await LoadSlotsAsync(); }
+    }
+    private async Task LoadSlotsAsync()
+    {
+        var version = ++loadVersion;
+        request.TimeSlotId = Guid.Empty; slots = [];
+        if (clinicId == Guid.Empty) return;
+        slotsLoading = true;
+        try
+        {
+            var available = await Api.GetSlotsAsync(clinicId, date);
+            // Ignore stale responses when a user quickly changes clinic or date.
+            if (version == loadVersion) slots = available;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or BookingApiException or TaskCanceledException)
+        { if (version == loadVersion) error = FriendlyError(ex); }
+        finally { if (version == loadVersion) slotsLoading = false; }
+    }
+    private void SelectSlot(Guid id) { request.TimeSlotId = id; error = null; }
+    private async Task BookAsync()
+    {
+        if (submitting) return;
+        submitting = true; error = null;
+        try { confirmation = await Api.BookAsync(request); focusConfirmation = true; }
+        catch (BookingApiException ex)
+        {
+            error = ex.Message;
+            if (ex.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.BadRequest) await LoadSlotsAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        { error = "The booking response could not be received. The booking may have been saved. Refresh availability before trying again."; await LoadSlotsAsync(); }
+        finally { submitting = false; }
+    }
+    private async Task StartAgain() { confirmation = null; request = new(); error = null; await LoadSlotsAsync(); }
+    private static string FriendlyError(Exception ex) => ex is BookingApiException api ? api.Message : "Unable to reach the booking service. Please try again.";
+}
