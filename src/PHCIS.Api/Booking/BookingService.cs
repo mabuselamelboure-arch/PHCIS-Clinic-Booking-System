@@ -11,23 +11,25 @@ public sealed record BookingResult(BookingStatus Status, BookingConfirmation? Co
     IDictionary<string, string[]>? Errors = null);
 public interface IBookingService
 {
-    Task<BookingResult> BookAsync(CreateBookingRequest request, CancellationToken ct = default);
+    Task<BookingResult> BookAsync(CreateBookingRequest request, CancellationToken ct = default, string? ownerId = null);
 }
 public sealed class BookingService(BookingDbContext db, IValidator<CreateBookingRequest> validator,
     TimeProvider clock, ILogger<BookingService> logger) : IBookingService
 {
-    public async Task<BookingResult> BookAsync(CreateBookingRequest request, CancellationToken ct = default)
+    public async Task<BookingResult> BookAsync(CreateBookingRequest request, CancellationToken ct = default, string? ownerId = null)
     {
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid) return new(BookingStatus.Invalid, Errors: validation.ToDictionary());
         var slot = await db.TimeSlots.Include(s => s.Clinic).SingleOrDefaultAsync(s => s.Id == request.TimeSlotId, ct);
         if (slot is null) return new(BookingStatus.NotFound);
+        if (request.ClinicId is { } clinicId && clinicId != slot.ClinicId)
+            return new(BookingStatus.Invalid, Errors: new Dictionary<string, string[]> { ["ClinicId"] = ["The selected slot does not belong to this clinic."] });
         if (slot.StartUtc <= clock.GetUtcNow().UtcDateTime) return new(BookingStatus.PastSlot);
         if (await db.Appointments.AnyAsync(a => a.TimeSlotId == slot.Id, ct)) return new(BookingStatus.Conflict);
         // SaveChanges uses one transaction for both inserts, preventing orphan patients on conflict.
         var appointment = new Appointment
         {
-            Patient = new Patient { FullName = request.FullName.Trim(), Email = request.Email.Trim(), Phone = request.Phone.Trim() },
+            Patient = new Patient { UserId = ownerId, FullName = request.FullName.Trim(), Email = request.Email.Trim(), Phone = request.Phone.Trim() },
             TimeSlotId = slot.Id,
             Reference = $"PHC-{Guid.NewGuid():N}",
             CreatedUtc = clock.GetUtcNow().UtcDateTime

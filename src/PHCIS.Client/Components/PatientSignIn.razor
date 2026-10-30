@@ -1,0 +1,38 @@
+@inject PatientSession Session
+<section class="booking-panel account-panel">
+    <p class="step">PATIENT ACCOUNT</p><h2>@(register ? "Create your account" : "Sign in to book")</h2>
+    <p>Keep your appointment confirmation connected to your account.</p>
+    @if (error is not null) { <p role="alert" class="validation-message">@error</p> }
+    <EditForm Model="model" OnValidSubmit="SubmitAsync" FormName="account">
+        <DataAnnotationsValidator /><ValidationSummary />
+        <label for="account-email">Account email</label><InputText id="account-email" type="email" @bind-Value="model.Email" autocomplete="username" maxlength="254" disabled="@busy" />
+        <label for="account-password">Password</label><InputText id="account-password" type="password" @bind-Value="model.Password" autocomplete="@(register ? "new-password" : "current-password")" maxlength="128" disabled="@busy" />
+        <p class="small-note">At least 10 characters, including uppercase, lowercase, a number and a symbol.</p>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@busy">@(busy ? "Please wait…" : register ? "Create account" : "Sign in")</MudButton>
+        <MudButton ButtonType="ButtonType.Button" OnClick="Toggle" Disabled="@busy">@(register ? "Use existing account" : "Create an account")</MudButton>
+    </EditForm>
+    <p class="small-note">For this assessment, use fictional details. Sign-in lasts up to 15 minutes and is cleared when the page reloads. Email verification and password recovery are outside this demonstration.</p>
+</section>
+@code {
+    [Parameter] public EventCallback SignedIn { get; set; }
+    private readonly AccountForm model = new();
+    private bool register, busy;
+    private string? error;
+    private void Toggle() { register = !register; error = null; }
+    private async Task SubmitAsync()
+    {
+        if (busy) return;
+        busy = true; error = null;
+        try { await Session.SignInAsync(model.Email, model.Password, register); model.Password = ""; await SignedIn.InvokeAsync(); }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        { error = ex is InvalidOperationException ? ex.Message : "Unable to reach the account service. Please try again."; }
+        finally { busy = false; }
+    }
+    private sealed class AccountForm
+    {
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 10)]
+        public string Password { get; set; } = "";
+    }
+}

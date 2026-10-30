@@ -4,6 +4,9 @@ using PHCIS.Api.Booking;
 using PHCIS.Api.Data;
 using PHCIS.Contracts;
 using Serilog;
+using PHCIS.Api.Security;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 var localDemo = args.Contains("--demo-local", StringComparer.OrdinalIgnoreCase);
@@ -17,9 +20,17 @@ builder.Services.AddScoped<IValidator<CreateBookingRequest>, BookingRequestValid
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddDbContext<BookingDbContext>(options =>
 {
-    if (localDemo) options.UseSqlite($"Data Source={Path.Combine(builder.Environment.ContentRootPath, "clinic-demo.db")}");
+    if (localDemo) options.UseSqlite($"Data Source={builder.Configuration["DemoDatabasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "clinic-demo-auth.db")}");
     else options.UseSqlServer(builder.Configuration.GetConnectionString("ClinicBooking")
         ?? throw new InvalidOperationException("Configure ConnectionStrings__ClinicBooking, or use --demo-local in Development."));
+});
+builder.AddPatientAuthentication();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("accounts", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "local", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 var app = builder.Build();
 if (localDemo)
@@ -41,6 +52,10 @@ if (app.Environment.IsDevelopment()) { app.UseWebAssemblyDebugging(); app.MapOpe
 else { app.UseHsts(); app.UseHttpsRedirection(); }
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+app.MapPatientAuthentication();
 app.MapBookingEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.Map("/api/{**path}", () => Results.NotFound());

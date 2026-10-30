@@ -1,9 +1,14 @@
 @page "/"
 @inject BookingApiClient Api
+@inject PatientSession Session
 <PageTitle>Book a clinic appointment | PHCIS</PageTitle>
 <section class="intro"><p class="eyebrow">YOUR HEALTH, YOUR TIME</p><h1>Care starts with<br />an appointment.</h1><p>Choose a clinic and a time that works for you.<br />We’ll confirm your booking right here.</p></section>
 <MudAlert Severity="Severity.Info" Dense="true" Class="demo-notice">Assessment demonstration. Use fictional patient details only.</MudAlert>
-@if (loading)
+@if (!Session.IsAuthenticated)
+{
+    <PatientSignIn SignedIn="SignedInAsync" />
+}
+else if (loading)
 {
     <div class="loading" role="status"><MudProgressLinear Indeterminate="true" Color="Color.Primary" /><p>Loading clinics…</p></div>
 }
@@ -19,6 +24,7 @@ else if (confirmation is not null)
 }
 else
 {
+    <div class="account-bar"><span>Signed in as @Session.Email</span><MudButton OnClick="SignOut">Sign out</MudButton></div>
     @if (!string.IsNullOrEmpty(error))
     {
         <div role="alert"><MudAlert Severity="Severity.Error">@error</MudAlert></div>
@@ -128,16 +134,19 @@ else
     {
         if (submitting) return;
         submitting = true; error = null;
-        try { confirmation = await Api.BookAsync(request); focusConfirmation = true; }
+        try { request.ClinicId = clinicId; confirmation = await Api.BookAsync(request); focusConfirmation = true; }
         catch (BookingApiException ex)
         {
-            error = ex.Message;
+            error = ex.StatusCode == System.Net.HttpStatusCode.Unauthorized ? "Your sign-in has expired. Sign in again to continue." : ex.Message;
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized) Session.SignOut();
             if (ex.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.BadRequest) await LoadSlotsAsync();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         { error = "The booking response could not be received. The booking may have been saved. Refresh availability before trying again."; await LoadSlotsAsync(); }
         finally { submitting = false; }
     }
+    private async Task SignedInAsync() { request.Email = Session.Email ?? ""; await LoadClinicsAsync(); }
+    private void SignOut() { Session.SignOut(); confirmation = null; request = new(); error = null; }
     private async Task StartAgain() { confirmation = null; request = new(); error = null; await LoadSlotsAsync(); }
     private static string FriendlyError(Exception ex) => ex is BookingApiException api ? api.Message : "Unable to reach the booking service. Please try again.";
 }

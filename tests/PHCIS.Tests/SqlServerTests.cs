@@ -103,6 +103,7 @@ internal sealed class SqlServerApplication : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<BookingDbContext>>();
             var gate = new ConcurrentSaveGate();
             services.AddDbContext<BookingDbContext>(o => o.UseSqlServer(connection).AddInterceptors(gate));
+            TestAuthentication.Add(services);
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(new FixedClock(BookingApplication.Now));
         });
@@ -112,6 +113,7 @@ internal sealed class SqlServerApplication : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
         await db.Database.MigrateAsync();
+        db.Users.Add(new Microsoft.AspNetCore.Identity.IdentityUser { Id = "test-patient", UserName = "test@example.test" });
         db.TimeSlots.Add(new TimeSlot { Id = SlotId, Clinic = new Clinic { Id = ClinicId, Name = "SQL Verification Clinic", Address = "Fictional" },
             StartUtc = BookingApplication.Now.UtcDateTime.AddHours(3), EndUtc = BookingApplication.Now.UtcDateTime.AddHours(3.5) });
         await db.SaveChangesAsync();

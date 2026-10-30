@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace PHCIS.Api.Data;
 
-public sealed class BookingDbContext(DbContextOptions<BookingDbContext> options) : DbContext(options)
+public sealed class BookingDbContext(DbContextOptions<BookingDbContext> options) : IdentityDbContext<IdentityUser>(options)
 {
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Clinic> Clinics => Set<Clinic>();
@@ -9,8 +11,10 @@ public sealed class BookingDbContext(DbContextOptions<BookingDbContext> options)
     public DbSet<Appointment> Appointments => Set<Appointment>();
     protected override void OnModelCreating(ModelBuilder model)
     {
+        base.OnModelCreating(model);
         model.Entity<Patient>(e =>
         {
+            e.HasOne<IdentityUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Restrict);
             e.Property(p => p.FullName).HasMaxLength(120).IsRequired();
             e.Property(p => p.Email).HasMaxLength(254).IsRequired();
             e.Property(p => p.Phone).HasMaxLength(25).IsRequired();

@@ -22,6 +22,7 @@ public sealed class BookingApiTests : IDisposable
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
         db.Database.EnsureCreated();
+        db.Users.Add(new Microsoft.AspNetCore.Identity.IdentityUser { Id = "test-patient", UserName = "test@example.test" });
         db.TimeSlots.AddRange(
             new TimeSlot { Id = BookingApplication.AvailableId, Clinic = new Clinic { Id = BookingApplication.ClinicId, Name = "Test Clinic", Address = "Fictional address" }, StartUtc = BookingApplication.Now.UtcDateTime.AddHours(3), EndUtc = BookingApplication.Now.UtcDateTime.AddHours(3.5) },
             new TimeSlot { Id = BookingApplication.ExpiredId, ClinicId = BookingApplication.ClinicId, StartUtc = BookingApplication.Now.UtcDateTime.AddHours(-1), EndUtc = BookingApplication.Now.UtcDateTime.AddMinutes(-30) });
@@ -177,7 +178,8 @@ internal sealed class BookingApplication : WebApplicationFactory<Program>
     public static readonly Guid ExpiredId = Guid.Parse("20000000-0000-0000-0000-000000000003");
     private readonly SqliteConnection connection = new("Data Source=:memory:");
     private readonly bool staticAssets;
-    public BookingApplication(bool staticAssets = false) { this.staticAssets = staticAssets; connection.Open(); }
+    private readonly bool realAuth;
+    public BookingApplication(bool staticAssets = false, bool realAuth = false) { this.staticAssets = staticAssets; this.realAuth = realAuth; connection.Open(); }
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(staticAssets ? "Development" : "Testing");
@@ -188,6 +190,7 @@ internal sealed class BookingApplication : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<BookingDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<BookingDbContext>>();
             services.AddDbContext<BookingDbContext>(options => options.UseSqlite(connection));
+            if (!realAuth) TestAuthentication.Add(services);
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(new FixedClock(Now));
         });

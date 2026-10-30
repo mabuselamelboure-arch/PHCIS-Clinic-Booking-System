@@ -24,3 +24,11 @@ See README.md for run instructions and the manual review checklist. The disposab
 The original suite was rerun: build 0 warnings/errors, 28 passed. A provider-specific opt-in test now executes migrations against a fresh owned SQL Server database, two genuinely concurrent HTTP requests gated after both availability checks, 201/409 outcomes, confirmation UTC, availability removal, one patient/appointment, duplicate-key rollback (2601/2627), and foreign-key error 547. Result: 29 passed, 0 failed, 0 skipped with PHCIS_SQLSERVER configured. Each test-created database is uniquely named and cleaned up only after ownership-prefix/length validation.
 
 Two development runs failed on a test-fixture expectation (expected two clinics but seed plus fixture create three). The expectation was corrected; no product defect was involved. One initial rebuild failed because the old demo process locked its binaries; that process was stopped before rebuilding.
+
+## Identity and domain milestone
+
+Release suite executed against SQL Server plus isolated SQLite: 36 passed, 0 failed, 0 skipped. Original 28 scenarios remain. Added real Identity registration/login, password policy/lockout, JWT signature/audience/expiry rejection, anonymous rejection, confirmation ownership, clinic/slot mismatch, and unexpected database-failure propagation. A test-only claim scheme keeps legacy booking scenarios focused; separate security tests use the actual JWT middleware.
+
+Patient ownership derives from the validated subject, never a request patient ID. Identity uses its standard password hasher. Tokens last 15 minutes and are held only in client memory; development/test keys are random and ephemeral. Production requires externally configured random signing material. No staff/admin workflows or invented roles are added. A new SQLite demo filename preserves the older anonymous demo database.
+
+One new failure-injection test initially severed an EF required navigation and failed before database execution; the fixture was corrected to exercise an actual foreign-key violation instead. It now verifies rollback and that an unexpected failure is not converted into 409.

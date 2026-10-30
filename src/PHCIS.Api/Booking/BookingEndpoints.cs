@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using PHCIS.Api.Data;
 using PHCIS.Contracts;
 namespace PHCIS.Api.Booking;
@@ -28,9 +29,10 @@ public static class BookingEndpoints
                 .Select(s => new TimeSlotResponse(s.Id, s.ClinicId, s.StartUtc, s.EndUtc)).ToListAsync(ct);
             return Results.Ok(slots);
         });
-        api.MapPost("/appointments", async (CreateBookingRequest request, IBookingService service, CancellationToken ct) =>
+        api.MapPost("/appointments", async (CreateBookingRequest request, IBookingService service, ClaimsPrincipal user, CancellationToken ct) =>
         {
-            var result = await service.BookAsync(request, ct);
+            var result = await service.BookAsync(request, ct, user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new InvalidOperationException("Authenticated subject is missing."));
             return result.Status switch
             {
                 BookingStatus.Created => Results.Json(result.Confirmation, statusCode: StatusCodes.Status201Created),
@@ -40,6 +42,15 @@ public static class BookingEndpoints
                 BookingStatus.Conflict => Results.Problem(statusCode: 409, title: "This slot was just booked. Choose another available slot."),
                 _ => Results.Problem()
             };
-        });
+        }).RequireAuthorization();
+        api.MapGet("/appointments/{reference}", async (string reference, ClaimsPrincipal user, BookingDbContext db, CancellationToken ct) =>
+        {
+            var subject = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            var appointment = await db.Appointments.AsNoTracking()
+                .Where(a => a.Reference == reference && a.Patient.UserId == subject)
+                .Select(a => new BookingConfirmation(a.Reference, a.TimeSlot.Clinic.Name, a.TimeSlot.Clinic.Address,
+                    a.TimeSlot.StartUtc, a.TimeSlot.EndUtc)).SingleOrDefaultAsync(ct);
+            return appointment is null ? Results.NotFound() : Results.Ok(appointment);
+        }).RequireAuthorization();
     }
 }

@@ -8,6 +8,7 @@ public sealed record BookingConfirmation(string Reference, string ClinicName, st
 
 public sealed class CreateBookingRequest
 {
+    public Guid? ClinicId { get; set; }
     public Guid TimeSlotId { get; set; }
     public string FullName { get; set; } = "";
     public string Email { get; set; } = "";
@@ -36,3 +37,7 @@ public static class ClinicTime
     public static DateTime Local(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).Add(Offset);
     public static DateTime ToUtc(DateOnly day, TimeOnly time) => DateTime.SpecifyKind(day.ToDateTime(time).Subtract(Offset), DateTimeKind.Utc);
 }
+
+public sealed record RegisterRequest(string Email, string Password);
+public sealed record LoginRequest(string Email, string Password);
+public sealed record AuthResponse(string AccessToken, DateTime ExpiresUtc, string Email);
