@@ -135,3 +135,30 @@ test('dates without slots have an explicit empty state',async({page})=>{
   await expect(page.getByText('No appointments available on this date.',{exact:false})).toBeVisible();
   await expect(page.getByRole('button',{name:'Confirm appointment',exact:true})).toBeDisabled();
 });
+
+
+test('account validation corrections preserve a single registration and login click',async({page})=>{
+  const email=`account-${crypto.randomUUID()}@example.test`;
+  const password=`Aa!1${crypto.randomBytes(30).toString('base64url')}`;
+  let registrations=0,logins=0;
+  page.on('request',r=>{if(r.method()==='POST'&&r.url().endsWith('/api/auth/register'))registrations++;
+    if(r.method()==='POST'&&r.url().endsWith('/api/auth/login'))logins++;});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Create an account',exact:true}).click();
+  await page.getByRole('button',{name:'Create account',exact:true}).click();
+  await expect(page.getByText('Enter your account email.',{exact:true})).toBeVisible();
+  await expect(page.getByText('Enter a password.',{exact:true})).toBeVisible();
+  await page.getByLabel('Account email',{exact:true}).fill(email);
+  await page.getByLabel('Password',{exact:true}).fill(password);
+  await page.getByRole('button',{name:'Create account',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Where and when?',exact:true})).toBeVisible();
+  expect(registrations).toBe(1);
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.getByText('Enter a password.',{exact:true})).toBeVisible();
+  await page.getByLabel('Account email',{exact:true}).fill(email);
+  await page.getByLabel('Password',{exact:true}).fill(password);
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Where and when?',exact:true})).toBeVisible();
+  expect(logins).toBe(1);
+});

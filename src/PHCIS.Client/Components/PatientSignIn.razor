@@ -4,11 +4,13 @@
     <p>Keep your appointment confirmation connected to your account.</p>
     @if (error is not null) { <p role="alert" class="validation-message">@error</p> }
     <EditForm Model="model" OnValidSubmit="SubmitAsync" FormName="account">
-        <DataAnnotationsValidator /><ValidationSummary />
+        <DataAnnotationsValidator />
         <label for="account-email">Account email</label><InputText id="account-email" type="email" @bind-Value="model.Email" autocomplete="username" maxlength="254" disabled="@busy" />
+        <div class="field-validation"><ValidationMessage For="() => model.Email" /></div>
         <label for="account-password">Password</label><InputText id="account-password" type="password" @bind-Value="model.Password" autocomplete="@(register ? "new-password" : "current-password")" maxlength="128" disabled="@busy" />
+        <div class="field-validation"><ValidationMessage For="() => model.Password" /></div>
         <p class="small-note">At least 10 characters, including uppercase, lowercase, a number and a symbol.</p>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@busy">@(busy ? "Please wait…" : register ? "Create account" : "Sign in")</MudButton>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@busy">@(busy ? "Please waitâ€¦" : register ? "Create account" : "Sign in")</MudButton>
         <MudButton ButtonType="ButtonType.Button" OnClick="Toggle" Disabled="@busy">@(register ? "Use existing account" : "Create an account")</MudButton>
     </EditForm>
     <p class="small-note">For this assessment, use fictional details. Sign-in lasts up to 15 minutes and is cleared when the page reloads. Email verification and password recovery are outside this demonstration.</p>
@@ -30,9 +32,11 @@
     }
     private sealed class AccountForm
     {
-        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress]
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your account email."),
+         System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string Email { get; set; } = "";
-        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 10)]
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter a password."),
+         System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 10, ErrorMessage = "Use a password of 10-128 characters.")]
         public string Password { get; set; } = "";
     }
 }
