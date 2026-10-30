@@ -46,3 +46,9 @@ Release suite was rerun after the validation change: 36 passed, 0 failed, 0 skip
 A real published-app run caught an unresolved bootstrap fingerprint placeholder: HTML/API responded, but WASM never initialized. Adding static endpoints while retaining the legacy framework middleware exposed a second pipeline conflict (HTTP 500 in its framework branch). The source now uses a stable bootstrap alias and .NET 10 MapStaticAssets without that legacy branch. No generated files were patched. The hosted-assets regression asserts that the bootstrap alias returns 200 and index HTML has no unresolved placeholder.
 
 After the fix: Release suite 36 passed/0 failed/0 skipped; Windows published application against SQL Server, Chromium 8 passed/0 failed. The earlier published startup test timed out and its remaining run was stopped for diagnosis; it was never counted as verified. Published WASM is now actually executed, not inferred from HTML delivery.
+
+## Packaging baseline
+
+The final SDK is pinned to 10.0.403 in global.json, GitHub Actions and Docker; runtime image is pinned to 10.0.14. NuGet and npm lock files are committed. Release publish succeeds. The final Docker image builds from locked dependencies and its runtime process uses non-root UID 1654. A restore-layer optimization initially omitted source inputs that influence Blazor implicit packages and failed NU1004; Docker now restores with the full source tree and a package-cache mount.
+
+README now documents dedicated SQL setup, migrations, secure configuration, Identity/JWT limitations, demo startup, tests, published execution, container network/auth requirements and troubleshooting. GitHub Actions defines isolated SQL Server, Release tests/publish, Chromium and Docker verification. No remote repository was created and hosted CI execution is not claimed. Container browser and fresh-clone evidence will be added after execution.

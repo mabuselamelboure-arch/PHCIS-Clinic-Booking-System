@@ -1,0 +1,14 @@
+.git
+**/bin
+**/obj
+**/node_modules
+**/*.db*
+**/*.mdf
+**/*.ldf
+**/*.pfx
+**/*.key
+.env*
+work
+artifacts
+tests
+docs

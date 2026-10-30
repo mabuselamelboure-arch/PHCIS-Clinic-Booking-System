@@ -1,0 +1,57 @@
+name: Assessment verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.403'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Start isolated SQL Server
+        shell: bash
+        run: |
+          password="Aa!1$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "SQLCMDPASSWORD=$password" >> "$GITHUB_ENV"
+          echo "PHCIS_SQLSERVER=Server=localhost,14333;User ID=sa;Password=$password;TrustServerCertificate=true" >> "$GITHUB_ENV"
+          export MSSQL_SA_PASSWORD="$password"
+          docker run -d --name phcis-sql -p 14333:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD mcr.microsoft.com/mssql/server:2022-latest
+          for i in {1..30}; do
+            if docker exec -e SQLCMDPASSWORD="$password" phcis-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' >/dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - run: dotnet tool restore
+      - run: dotnet restore PHCIS.sln --locked-mode
+      - run: dotnet build PHCIS.sln -c Release --no-restore
+      - run: dotnet test tests/PHCIS.Tests -c Release --no-build --logger "trx;LogFileName=assessment.trx"
+      - run: dotnet publish src/PHCIS.Api -c Release --no-build --no-restore -o artifacts/publish
+      - name: Install browser tests
+        working-directory: tests/PHCIS.BrowserTests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Browser verification
+        working-directory: tests/PHCIS.BrowserTests
+        run: npm test
+      - name: Validate container build
+        run: docker build -t phcis-assessment:ci .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: assessment-evidence
+          path: |
+            tests/PHCIS.Tests/TestResults
+            tests/PHCIS.BrowserTests/test-results
+            work/browser-results.json
+            docs/evidence
+      - name: Stop isolated database
+        if: always()
+        run: docker rm -f phcis-sql
