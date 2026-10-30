@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const evidence = path.resolve(__dirname,'../../docs/evidence');
+const evidence = path.resolve(__dirname,process.env.PHCIS_CAPTURE_EVIDENCE ? '../../docs/evidence' : '../../work/evidence');
 fs.mkdirSync(evidence,{recursive:true});
 function visitDay(days=1) {
   const day = new Date(Date.now()+2*3600000); day.setUTCDate(day.getUTCDate()+days);

@@ -52,3 +52,9 @@ After the fix: Release suite 36 passed/0 failed/0 skipped; Windows published app
 The final SDK is pinned to 10.0.403 in global.json, GitHub Actions and Docker; runtime image is pinned to 10.0.14. NuGet and npm lock files are committed. Release publish succeeds. The final Docker image builds from locked dependencies and its runtime process uses non-root UID 1654. A restore-layer optimization initially omitted source inputs that influence Blazor implicit packages and failed NU1004; Docker now restores with the full source tree and a package-cache mount.
 
 README now documents dedicated SQL setup, migrations, secure configuration, Identity/JWT limitations, demo startup, tests, published execution, container network/auth requirements and troubleshooting. GitHub Actions defines isolated SQL Server, Release tests/publish, Chromium and Docker verification. No remote repository was created and hosted CI execution is not claimed. Container browser and fresh-clone evidence will be added after execution.
+
+## Container execution
+
+Final pinned Dockerfile built successfully. Container ran on localhost only as UID 1654 with a disposable SQLite demo. All eight Chromium scenarios passed (0 failed), including actual published WASM, Identity registration and two-tab 201/409 competition. Sanitized summary: docs/evidence/browser-container.json. Linux-container SQL Server authentication was not claimed: the host uses Windows authentication, while SQL Server execution was separately verified natively.
+
+Ordinary browser runs now write screenshots to ignored work/evidence; explicit PHCIS_CAPTURE_EVIDENCE refreshes reviewed documentation images. This prevents routine tests from changing tracked deliverables.

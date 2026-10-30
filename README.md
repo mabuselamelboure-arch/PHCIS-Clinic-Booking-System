@@ -94,7 +94,7 @@ npm test
 npm run diagrams
 ```
 
-The default harness starts the existing Release build at port 5085 in Development, using a new SQLite file under work/. It creates fictional accounts, verifies eight browser scenarios, and stops its server. For an already running assessment app, set `PHCIS_BROWSER_URL` to its URL; the harness then leaves server lifecycle to you. Do not target real patient data. Browser requests will create fictional accounts/bookings. Server account rate limiting remains active; use a new test server/window if repeatedly running account-heavy tests. Screenshots are in docs/evidence; transient results stay ignored. No credential-bearing traces are recorded.
+The default harness starts the existing Release build at port 5085 in Development, using a new SQLite file under work/. It creates fictional accounts, verifies eight browser scenarios, and stops its server. For an already running assessment app, set `PHCIS_BROWSER_URL` to its URL; the harness then leaves server lifecycle to you. Do not target real patient data. Browser requests will create fictional accounts/bookings. Server account rate limiting remains active; use a new test server/window if repeatedly running account-heavy tests. Committed review screenshots are in docs/evidence. Ordinary test screenshots go to ignored work/evidence so test runs do not dirty tracked files. Set PHCIS_CAPTURE_EVIDENCE=1 only when intentionally refreshing the reviewed screenshots; transient results stay ignored. No credential-bearing traces are recorded.
 
 ## Publish and run
 

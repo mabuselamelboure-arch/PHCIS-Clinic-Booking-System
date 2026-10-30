@@ -1,0 +1,12 @@
+{
+  "provider": "SQLite demo",
+  "host": "Linux Docker, published Release output, UID 1654",
+  "stats": {
+    "startTime": "2026-10-30T09:04:38.188Z",
+    "duration": 19534.260000000002,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
