@@ -2,28 +2,41 @@
 
 ## Architecture
 
-A small layered modular application, hosted in one process with a client-side WebAssembly UI. Contracts are shared; EF entities remain server-side.
+A small layered modular application. The API hosts the standalone Blazor WASM assets; HttpClient uses the same origin. EF entities remain server-side and DTOs/validation rules are shared.
 
 ```mermaid
 flowchart LR
-    Patient[Patient browser] --> Client[Blazor WebAssembly UI]
-    Client -->|Same-origin HttpClient JSON| API[ASP.NET Core endpoints]
+    Browser[Patient browser] --> Client[Blazor WASM and MudBlazor]
+    Client -->|Same-origin JSON and Bearer JWT| API[ASP.NET Core endpoints]
+    API --> Identity[Identity and JWT validation]
     API --> Service[Booking service]
-    Service --> Validation[Shared FluentValidation rules]
-    Service --> EF[EF Core DbContext]
+    Service --> Rules[FluentValidation and clock]
+    Service --> EF[EF Core]
+    Identity --> EF
     EF --> SQL[(SQL Server)]
-    EF -. Explicit local demo only .-> Demo[(SQLite)]
+    EF -. Explicit local demo .-> SQLite[(SQLite)]
 ```
 
-The API also serves client static assets. No CORS configuration is necessary for this same-origin arrangement. The UI is standalone WASM, not Blazor Server or server-interactive rendering.
-
-## Entity relationship diagram
+## Data model
 
 ```mermaid
 erDiagram
+    IDENTITY_USER ||--o{ PATIENT : owns
+    PATIENT ||--o{ APPOINTMENT : books
     CLINIC ||--o{ TIME_SLOT : offers
     TIME_SLOT ||--o| APPOINTMENT : reserves
-    PATIENT ||--o{ APPOINTMENT : books
+    IDENTITY_USER {
+        string Id PK
+        string UserName
+        string PasswordHash
+    }
+    PATIENT {
+        guid Id PK
+        string UserId FK
+        string FullName
+        string Email
+        string Phone
+    }
     CLINIC {
         guid Id PK
         string Name
@@ -35,12 +48,6 @@ erDiagram
         datetime StartUtc
         datetime EndUtc
     }
-    PATIENT {
-        guid Id PK
-        string FullName
-        string Email
-        string Phone
-    }
     APPOINTMENT {
         guid Id PK
         guid PatientId FK
@@ -50,7 +57,7 @@ erDiagram
     }
 ```
 
-Additional unique index: `(ClinicId, StartUtc)`. Check constraint: `EndUtc > StartUtc`. Foreign keys use restricted deletion so dependent records cannot disappear accidentally. The model permits a patient with several appointments; the anonymous first-version booking flow creates a new patient row per booking to avoid treating an unverified email as identity.
+Patient.UserId is nullable to preserve pre-identity records; new API bookings always use the verified JWT subject. Identity's additional standard tables are omitted from this domain-focused ERD. Unique `(ClinicId, StartUtc)` prevents duplicate schedule starts; the end-after-start check and restricted foreign keys enforce basic consistency. Patient details are captured per booking, not deduplicated by unverified email.
 
 ## Booking sequence
 
@@ -58,55 +65,51 @@ Additional unique index: `(ClinicId, StartUtc)`. Check constraint: `EndUtc > Sta
 sequenceDiagram
     actor Patient
     participant UI as Blazor WASM
-    participant API as API endpoint
+    participant API as API and JWT middleware
     participant Service as Booking service
-    participant DB as Relational database
-    Patient->>UI: Select clinic and SAST date
-    UI->>API: GET available slots
-    API->>DB: Future slots without appointments
-    DB-->>UI: Slot list
+    participant DB as SQL Server
+    Patient->>API: Register or sign in using Identity
+    API-->>UI: JWT with 15-minute expiry
+    UI->>API: Query clinic and SAST-date availability
+    API->>DB: Future unbooked slots
+    DB-->>UI: Slot DTOs with UTC times
     Patient->>UI: Select slot and enter details
-    UI->>UI: Shared form validation
-    UI->>API: POST appointment
-    API->>Service: BookAsync
-    Service->>Service: Validate and check server time
-    Service->>DB: Check slot and existing booking
-    Service->>DB: Insert patient + appointment in transaction
-    alt Slot remains free
+    UI->>UI: Shared validation
+    UI->>API: POST appointment with JWT
+    API->>API: Validate token and derive subject
+    API->>Service: Validated request and verified owner
+    Service->>DB: Check slot, expiry and existing appointment
+    Service->>DB: Insert patient and appointment atomically
+    alt Unique slot still free
         DB-->>Service: Commit
         Service-->>UI: 201 confirmation
-    else Another request booked the slot
-        DB-->>Service: Unique constraint failure, rollback
+    else Competing transaction wins
+        DB-->>Service: Duplicate-key failure and rollback
         Service-->>UI: 409 conflict
-        UI->>API: Refresh available slots
+        UI->>API: Refresh availability
     end
 ```
 
-## Integrity and error handling
+## Concurrency and errors
 
-The initial availability and duplicate checks improve feedback but are not concurrency controls. The unique appointment-slot database index enforces the invariant. SQL Server duplicate-key numbers 2601/2627 and SQLite's unique-constraint code 2067 are handled; the service verifies that the slot was actually booked before returning a conflict. Unrelated persistence failures propagate to centralized ProblemDetails handling.
+Availability and AnyAsync prechecks are feedback, not locking. The unique index on Appointments.TimeSlotId is authoritative. EF SaveChanges wraps both inserts in a transaction. SQL Server 2601/2627 and SQLite unique code 2067 are recognized; after clearing tracked entries, the service verifies that a competing appointment exists before returning a conflict. Other database failures propagate to centralized ProblemDetails handling.
 
-The race test deterministically commits a competing booking between the service's availability check and insert. It checks the actual unique constraint, conflict response from the service, and rollback of the losing patient insert. This validates the interleaving on SQLite; it is not a SQL Server load test.
+The SQL Server test gates two real HTTP requests after both have passed the precheck. Exactly one commits and one returns 409, with one patient/appointment and no remaining availability. It separately executes duplicate-key rollback and foreign-key enforcement on SQL Server. A deterministic SQLite interleaving test and unexpected-FK failure test preserve lower-level regression coverage. This is correctness verification, not a throughput/load benchmark.
 
-The API uses explicit DTO mapping. No patient records can be retrieved through public endpoints. Confirmation deliberately contains scheduling information without echoing contact details. Random reference values are not authentication tokens. Request bodies and patient fields are not logged; structured logs use appointment/slot IDs.
+## Security
 
-## SOLID and implementation decisions
+Identity owns password policy/hashing and account lockout. JWT validation checks issuer, audience, signature and lifetime. Signing material comes from external configuration; Development/Testing may use a newly generated ephemeral key. The client retains tokens only in memory. Authentication precedes authorization, which is required on booking and confirmation endpoints. Confirmation retrieval filters by both reference and owner. No browser patient identifier is trusted.
 
-- **Single responsibility:** endpoints translate HTTP, the service enforces booking rules, the context persists data, and client components manage interaction.
-- **Dependency inversion:** endpoints depend on IBookingService; the service receives DbContext, IValidator, TimeProvider and ILogger through DI.
-- **Interface segregation:** one small booking interface; no broad service or generic repository contract.
-- **Open/closed and substitution:** rules live in a validator and time is injectable. Additional workflows should be added as focused services without weakening existing booking invariants.
-- **Pragmatism:** four projects rather than microservices or separate domain/infrastructure projects for this limited scope. EF Core already provides unit-of-work behavior.
-- **Migration lifecycle:** SQL Server migrations are generated without a database connection. Application startup never migrates SQL Server automatically. Only the explicit local-demo flag creates/refreshes its disposable SQLite database.
+The only adopted capability is patient booking; no unnecessary roles are seeded. Registration has generic failure messages; login failures are generic and account endpoints have bounded rate limits. Email verification/recovery, MFA, refresh tokens and immediate revocation are explicitly outside this assessment. Production requires TLS, durable secrets and an operational security design.
 
-## Assessment technology mapping
+## Design choices and lifecycle
 
-| Area | Implemented | Deferred/alternative |
-|---|---|---|
-| Frontend | Blazor WASM, MudBlazor, HttpClient, shared FluentValidation | Fluent UI alternative unnecessary |
-| Backend | ASP.NET Core API, EF Core, FluentValidation, Serilog | Explicit mapping replaces AutoMapper |
-| Database | SQL Server model/migration; opt-in SQLite demo | PostgreSQL alternative unnecessary; no Dapper need |
-| Testing | xUnit, real SQLite constraints, in-process API tests | Moq unnecessary; browser automation can be added |
-| Authentication | Demo limitation documented | Identity/JWT and role/ownership rules pending scope confirmation |
-| Operations | Local tool manifest, OpenAPI, liveness endpoint | CI/CD and Docker deferred |
-| Optional | None | SMS/email, calendars, SignalR, GraphQL |
+Endpoints handle HTTP; IBookingService handles business decisions; DbContext persists; components manage interaction. DI supplies validator, clock and logger. Explicit mappings are small and reviewable; no AutoMapper or generic repository is needed. Tests use real relational constraints rather than meaningless mocks, so Moq is not added.
+
+SQL Server migrations are explicit deployment actions, never automatic normal-startup changes. The design-time factory can generate migrations without a connection. Only --demo-local in Development creates/seeds an isolated SQLite file. Browser tests use a fresh file under ignored work/. Normal SQL Server seed is an explicit command that exits after execution.
+
+Inline validation has reserved vertical space so correcting errors cannot move the submit button during a pointer press. A browser regression reproduces the original issue and verifies one submission, confirmation focus and refreshed availability.
+
+## Evidence
+
+Rendered diagrams and browser screenshots are in docs/evidence. Validation.md records actual commands, results and limitations. AssessmentCompliance.md attributes mandatory, recommended, illustrative and optional items to the original PDF.

@@ -36,7 +36,7 @@ else
     else
     {
         <EditForm Model="request" OnValidSubmit="BookAsync" FormName="booking">
-            <BookingValidator /><ValidationSummary />
+            <BookingValidator />
             <div class="booking-grid">
                 <section class="booking-panel">
                     <p class="step">01 / CHOOSE YOUR VISIT</p><h2>Where and when?</h2>
@@ -59,13 +59,13 @@ else
                             }
                         </div>
                     }
-                    <ValidationMessage For="() => request.TimeSlotId" />
+                    <div class="field-validation"><ValidationMessage For="() => request.TimeSlotId" /></div>
                 </section>
                 <section class="booking-panel">
                     <p class="step">02 / YOUR DETAILS</p><h2>Who is visiting?</h2>
-                    <label for="full-name">Full name</label><InputText id="full-name" @bind-Value="request.FullName" autocomplete="name" maxlength="120" disabled="@submitting" /><ValidationMessage For="() => request.FullName" />
-                    <label for="email">Email address</label><InputText id="email" type="email" @bind-Value="request.Email" autocomplete="email" maxlength="254" disabled="@submitting" /><ValidationMessage For="() => request.Email" />
-                    <label for="phone">Contact number</label><InputText id="phone" type="tel" @bind-Value="request.Phone" autocomplete="tel" maxlength="25" disabled="@submitting" /><ValidationMessage For="() => request.Phone" />
+                    <label for="full-name">Full name</label><InputText id="full-name" @bind-Value="request.FullName" autocomplete="name" maxlength="120" disabled="@submitting" /><div class="field-validation"><ValidationMessage For="() => request.FullName" /></div>
+                    <label for="email">Email address</label><InputText id="email" type="email" @bind-Value="request.Email" autocomplete="email" maxlength="254" disabled="@submitting" /><div class="field-validation"><ValidationMessage For="() => request.Email" /></div>
+                    <label for="phone">Contact number</label><InputText id="phone" type="tel" @bind-Value="request.Phone" autocomplete="tel" maxlength="25" disabled="@submitting" /><div class="field-validation"><ValidationMessage For="() => request.Phone" /></div>
                     <div class="visit-summary"><strong>Your visit</strong><p>@SelectedVisit</p></div>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@(submitting || slotsLoading || request.TimeSlotId == Guid.Empty)">@(submitting ? "Confirming…" : "Confirm appointment")</MudButton>
                     <p class="small-note">One appointment per time slot. Availability is confirmed when your booking is saved.</p>

@@ -1,0 +1,13 @@
+{
+  "provider": "SQL Server",
+  "configuration": "Release",
+  "stats": {
+    "startTime": "2026-10-30T08:49:25.769Z",
+    "duration": 25452.709,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "scope": "Eight Chromium scenarios against running SQL Server application; no request bodies, passwords or tokens captured."
+}

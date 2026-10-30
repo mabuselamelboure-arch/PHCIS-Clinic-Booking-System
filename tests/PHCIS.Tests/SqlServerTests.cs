@@ -57,6 +57,7 @@ public sealed class SqlServerTests
         var confirmation = await success.Content.ReadFromJsonAsync<BookingConfirmation>();
         Assert.NotNull(confirmation);
         Assert.Equal(DateTimeKind.Utc, confirmation.StartUtc.Kind);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/appointments/{confirmation.Reference}")).StatusCode);
         var slots = await client.GetFromJsonAsync<List<TimeSlotResponse>>($"/api/clinics/{SqlServerApplication.ClinicId}/slots?date=2030-01-07");
         Assert.DoesNotContain(slots!, s => s.Id == SqlServerApplication.SlotId);
         using var checkScope = app.Services.CreateScope();

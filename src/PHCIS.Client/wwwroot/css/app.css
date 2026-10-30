@@ -16,3 +16,5 @@ label { display: block; margin: 20px 0 8px; font-weight: 600; font-size: 14px; }
 @media(max-width:760px) { .booking-grid { grid-template-columns: 1fr; }.page { padding-top: 32px; }.booking-panel { padding: 24px; }.header-note, .brand-subtitle { display: none; }.slots { grid-template-columns: repeat(3,1fr); }.confirmation dl { grid-template-columns: 1fr; gap: 8px; }.confirmation dd { margin-bottom: 14px; } }
 
 .account-panel { max-width: 620px; }.account-bar { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:13px;gap:12px;overflow-wrap:anywhere; }
+.account-bar .mud-button-root { flex-shrink:0; white-space:nowrap; }
+.field-validation { min-height:52px; }

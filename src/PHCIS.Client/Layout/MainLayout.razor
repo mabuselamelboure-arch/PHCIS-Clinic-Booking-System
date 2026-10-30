@@ -1,8 +1,12 @@
 @inherits LayoutComponentBase
-<MudThemeProvider />
+<MudThemeProvider Theme="@theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <header class="site-header"><a href="/" class="brand"><span class="brand-mark">+</span> PHCIS <span class="brand-subtitle">Community care</span></a><span class="header-note">Clinic appointments</span></header>
 <main class="page">@Body</main>
 <footer class="site-footer">PHCIS practical assessment · Demonstration only · All appointments shown in SAST (UTC+02:00)</footer>
+
+@code {
+    private readonly MudTheme theme = new() { PaletteLight = new PaletteLight { Primary = "#245e54", Secondary = "#386d5d" } };
+}

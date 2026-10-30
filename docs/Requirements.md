@@ -1,52 +1,46 @@
-# Requirements and scope
+# Requirements and assessed scope
+
+Source: original three-page PHCIS assessment; detailed attribution and technology decisions are in AssessmentCompliance.md.
 
 ## Stakeholders
 
-| Stakeholder | Needs |
+| Stakeholder | Need and implemented scope |
 |---|---|
-| Patient | Select a clinic and available time, provide contact details, receive clear confirmation. |
-| Clinic staff | Reliable bookings, accurate availability, no double booking. Staff management screens are future scope. |
-| System administrator | Repeatable setup, database integrity, diagnostics, and future identity/role management. |
-| Assessor/developer | Readable architecture, documented decisions, diagrams, runnable setup, and meaningful tests. |
+| Patient | Register/sign in, select a clinic/date/slot, provide booking details, receive an owned confirmation. |
+| Clinic staff | Accurate availability and no duplicate booking. Staff management screens are outside the assessed implementation list. |
+| System administrator | Reproducible configuration, migrations, diagnostics and deployment. No invented admin workflow or privileged demo account. |
+| Assessor | Understand architecture, run from a clean checkout, inspect tests and evidence. |
 
 ## Functional requirements
 
-| ID | Requirement | First-version acceptance criterion |
-|---|---|---|
-| FR01 | List clinics | API and UI display seeded clinic names and addresses. |
-| FR02 | Query availability by clinic/date | Only future, unbooked slots for the selected SAST calendar day are returned. |
-| FR03 | Validate patient input | Full name <=120 characters, valid email <=254, contact number with 7-15 digits and up to 25 formatted characters, and non-empty slot ID are enforced in client and server. |
-| FR04 | Book an appointment | A valid future slot creates a patient and appointment atomically. |
-| FR05 | Prevent double bookings | A unique appointment-slot constraint permits one booking, including competing requests. The losing request receives HTTP 409. |
-| FR06 | Confirm the booking | Confirmation shows reference, clinic/address, date, time and SAST only after successful persistence. |
-| FR07 | Recover from errors | Invalid, missing, expired, and already-booked slots have distinct responses; the UI allows another selection. |
-| FR08 | Cancellation and rescheduling | Identified from assessment examples; deferred pending identity, ownership and slot-release rules. |
-| FR09 | Staff/administrator management | Identified stakeholder need; outside the first booking workflow. |
+| ID | Requirement / acceptance |
+|---|---|
+| FR01 | List fictional demonstration clinics with names and addresses. |
+| FR02 | Return future, unbooked slots for the selected clinic and SAST day, with a 90-day query horizon. |
+| FR03 | Enforce full name <=120 characters; email <=254 and valid format; phone 7-15 digits and <=25 formatted characters; non-empty slot. |
+| FR04 | Persist patient details and appointment atomically; reject missing/expired slots and supplied clinic/slot mismatches. |
+| FR05 | Database enforces one appointment per slot, including concurrent requests; loser receives HTTP 409. |
+| FR06 | Return reference, clinic/address and UTC times after persistence; display SAST confirmation and refresh booked availability. |
+| FR07 | Show loading, empty, validation, connection and conflict states; prevent duplicate UI submissions; ignore stale availability responses. |
+| FR08 | Register/login using ASP.NET Core Identity; authenticate protected endpoints with short-lived JWTs. |
+| FR09 | Derive patient ownership from validated JWT subject. Owners can retrieve their confirmation; other users receive 404. |
+| FR10 | Identify cancellation/rescheduling as future requirements. The PDF gives these as illustrative analysis examples, not explicit implementation tasks. No cancellation is claimed. |
 
 ## Non-functional requirements
 
-- **Integrity:** relational foreign keys, a unique clinic/start index, unique appointment/slot and reference indexes, and end-after-start constraint. Patient and appointment insertion is one transaction.
-- **Security/privacy:** treat client input as untrusted; validate on the API; do not log patient fields or request bodies; keep credentials outside source. The demo has no identity or ownership controls and must use fictional data. Production requires authentication, authorization, patient ownership, retention/privacy policies and operational security review.
-- **Maintainability:** separate UI, contracts/validation, HTTP endpoints, business rules and persistence. Use DI and an injectable TimeProvider; avoid artificial repository layers over EF Core.
-- **Performance/scalability:** no-tracking read projections and clinic/time indexes. Availability queries cover one date and permit searches up to 90 days ahead. No capacity benchmark or scale guarantee is claimed; measure against agreed targets before production.
-- **Usability/accessibility:** labels, keyboard-operable slot buttons, visible selected state, loading/empty/error states, responsive layout and focus on confirmation.
-- **Reliability:** handle a stale availability list with a database constraint and recoverable conflict; reject expired slots using server time. A lost network response may leave a successful booking, which the UI explains before refreshing availability.
-- **Testability:** deterministic clock, isolated relational test databases, API integration tests, race/rollback tests, and separate manual browser checks.
+- Integrity: restricted foreign keys; unique clinic/start, appointment/slot and reference indexes; end-after-start constraint; transactional insert.
+- Security: standard Identity password hashing/policy/lockout; JWT issuer/audience/signature/lifetime checks; account endpoint IP rate limits; no client-supplied owner; no patient request-body logging or committed credentials. HTTPS/HSTS outside Development; production hosting must terminate TLS and configure its secret store and hostname.
+- Maintainability: client, contracts, endpoints, business service and EF persistence have distinct responsibilities. DI and injectable TimeProvider keep rules testable. Small explicit DTO mappings avoid unnecessary abstractions.
+- Usability: labelled controls, selected slot state, stable inline-validation space, confirmation focus, keyboard order, responsive desktop/mobile layout and recoverable errors.
+- Performance/scalability: indexed, no-tracking availability projections for one date. No load or scale guarantee is claimed.
+- Reproducibility: pinned package versions and lock files, local EF tool, Release build/test/publish, browser tests, CI definition and non-root Docker packaging.
 
-## Assumptions
+## Assumptions and limitations
 
-1. Each clinic slot has capacity one. There are no providers, rooms, specialties, overlapping slot administration, or multi-resource capacity rules in this version.
-2. All clinics use SAST (UTC+02:00). Storage and API properties use UTC; availability dates and UI display use SAST.
-3. Demonstration slots last 30 minutes on weekdays, 08:00-14:00, over a rolling 14-day seed window. A 90-day query limit does not imply slots exist for all 90 days.
-4. A patient row represents the submitted details for one booking. It is not a verified or deduplicated identity. Cross-clinic patient overlap rules require identity and are deferred.
-5. Confirmation is on-screen. Email and SMS are optional enhancements and are not called.
-6. SQL Server is the assessment persistence provider; SQLite is an explicit convenience for local demos and isolated tests. SQL Server-specific behavior still needs validation on SQL Server.
-7. Page 2 is a technology overview. MudBlazor, FluentValidation, HttpClient, EF Core, Serilog, and xUnit are used. Authentication, AutoMapper, UI automation frameworks, Docker and CI are tracked as scope decisions rather than claimed as complete.
+All clinics use SAST (UTC+02:00); storage and API properties use UTC. Capacity is one per slot; no room/provider management or overlapping schedule authoring exists. Demo slots run weekdays 08:00-14:00 over the next 14 calendar days. A 90-day query limit does not guarantee seeded availability for 90 days.
 
-## Future work, in dependency order
+A Patient row captures details for a booking and links to an Identity user. The user can have several booking-detail rows; email is not used as ownership proof. Legacy anonymous rows remain nullable and are not available through owned confirmation retrieval. Patient-overlap/deduplication rules are outside scope.
 
-1. Clarify required identity/roles; implement secure patient ownership and staff access.
-2. Add cancellation and rescheduling with atomic slot release/reassignment and audit history.
-3. Add clinic/staff schedule management and stable patient identity where required.
-4. Validate SQL Server concurrency under load; add UI regression tests and CI.
-5. Add reminders, calendar integration or real-time updates only if required.
+Only patient capabilities are implemented. Staff/admin stakeholders do not imply management features or unnecessary roles. No email verification, password recovery, refresh-token flow, MFA or immediate server-side JWT revocation is provided. Logout clears the in-memory token; tokens expire within 15 minutes. Reload requires sign-in again. Fictional data only; this is an assessment, not a production healthcare deployment.
+
+Cancellation/rescheduling, reminders, calendar synchronization, SignalR, GraphQL and Dapper are excluded as documented in the compliance matrix. A lost booking response can leave a saved booking; the UI warns and refreshes availability. Request idempotency and appointment history UI are future enhancements.

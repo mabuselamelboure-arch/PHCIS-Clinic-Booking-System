@@ -19,6 +19,7 @@ public sealed class BookingRequestValidator : AbstractValidator<CreateBookingReq
 {
     public BookingRequestValidator()
     {
+        RuleLevelCascadeMode = CascadeMode.Stop;
         RuleFor(x => x.TimeSlotId).NotEmpty().WithMessage("Select an available time slot.");
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Email).NotEmpty().MaximumLength(254).EmailAddress();

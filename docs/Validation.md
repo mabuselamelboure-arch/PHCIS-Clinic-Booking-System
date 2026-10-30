@@ -32,3 +32,11 @@ Release suite executed against SQL Server plus isolated SQLite: 36 passed, 0 fai
 Patient ownership derives from the validated subject, never a request patient ID. Identity uses its standard password hasher. Tokens last 15 minutes and are held only in client memory; development/test keys are random and ephemeral. Production requires externally configured random signing material. No staff/admin workflows or invented roles are added. A new SQLite demo filename preserves the older anonymous demo database.
 
 One new failure-injection test initially severed an EF required navigation and failed before database execution; the fixture was corrected to exercise an actual foreign-key violation instead. It now verifies rollback and that an unexpected failure is not converted into 409.
+
+## Browser milestone
+
+Independent Playwright 1.64.1 with Chromium executed the Release app against the dedicated SQL Server database: 8 passed, 0 failed. This verifies real WASM execution, account creation, clinic/date/slot selection, invalid input correction, one POST on double click, confirmation/focus, availability refresh, two tabs yielding 201/409, stale responses, API recovery, mobile keyboard order/no horizontal overflow, JWT-expiry recovery, empty dates and no console/component-asset errors. Screenshots and a sanitized result summary are in docs/evidence.
+
+Initial browser runs had a duplicate test locator, then exposed a real layout shift: blur removed validation messages during mousedown, moving the submit button before mouseup. The fix shows only inline booking errors, stops each property at its first validation error, and reserves message space. The regression now passes without adding a blur workaround. A narrow-layout sign-out wrap was fixed; theme colors now match the existing clinic branding. All three Mermaid diagrams rendered successfully and their PNGs were visually inspected.
+
+Release suite was rerun after the validation change: 36 passed, 0 failed, 0 skipped; migration consistency check reports no pending changes.
