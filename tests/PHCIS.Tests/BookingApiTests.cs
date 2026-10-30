@@ -163,6 +163,8 @@ public sealed class BookingApiTests : IDisposable
         var home = await browser.GetAsync("/");
         Assert.Equal(HttpStatusCode.OK, home.StatusCode);
         Assert.Contains("id=\"app\"", await home.Content.ReadAsStringAsync());
+        Assert.DoesNotContain("#[.{fingerprint}]", await home.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/_framework/blazor.webassembly.js")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/_content/MudBlazor/MudBlazor.min.css")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/_content/MudBlazor/MudBlazor.min.js")).StatusCode);
     }

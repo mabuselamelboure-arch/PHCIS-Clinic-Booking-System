@@ -50,11 +50,11 @@ app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 if (app.Environment.IsDevelopment()) { app.UseWebAssemblyDebugging(); app.MapOpenApi(); }
 else { app.UseHsts(); app.UseHttpsRedirection(); }
-app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.MapStaticAssets();
 app.MapPatientAuthentication();
 app.MapBookingEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));

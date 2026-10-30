@@ -17,6 +17,8 @@ flowchart LR
     EF -. Explicit local demo .-> SQLite[(SQLite)]
 ```
 
+The host uses .NET 10 MapStaticAssets endpoint aliases for the stable Blazor bootstrap URL; published output does not depend on an unresolved HTML fingerprint placeholder or the legacy framework-file branch.
+
 ## Data model
 
 ```mermaid

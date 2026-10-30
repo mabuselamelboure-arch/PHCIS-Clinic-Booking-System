@@ -1,0 +1,12 @@
+{
+  "provider": "SQL Server",
+  "host": "published Release output",
+  "stats": {
+    "startTime": "2026-10-30T09:03:09.926Z",
+    "duration": 19958.52,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

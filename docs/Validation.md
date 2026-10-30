@@ -40,3 +40,9 @@ Independent Playwright 1.64.1 with Chromium executed the Release app against the
 Initial browser runs had a duplicate test locator, then exposed a real layout shift: blur removed validation messages during mousedown, moving the submit button before mouseup. The fix shows only inline booking errors, stops each property at its first validation error, and reserves message space. The regression now passes without adding a blur workaround. A narrow-layout sign-out wrap was fixed; theme colors now match the existing clinic branding. All three Mermaid diagrams rendered successfully and their PNGs were visually inspected.
 
 Release suite was rerun after the validation change: 36 passed, 0 failed, 0 skipped; migration consistency check reports no pending changes.
+
+## Published-host regression
+
+A real published-app run caught an unresolved bootstrap fingerprint placeholder: HTML/API responded, but WASM never initialized. Adding static endpoints while retaining the legacy framework middleware exposed a second pipeline conflict (HTTP 500 in its framework branch). The source now uses a stable bootstrap alias and .NET 10 MapStaticAssets without that legacy branch. No generated files were patched. The hosted-assets regression asserts that the bootstrap alias returns 200 and index HTML has no unresolved placeholder.
+
+After the fix: Release suite 36 passed/0 failed/0 skipped; Windows published application against SQL Server, Chromium 8 passed/0 failed. The earlier published startup test timed out and its remaining run was stopped for diagnosis; it was never counted as verified. Published WASM is now actually executed, not inferred from HTML delivery.
