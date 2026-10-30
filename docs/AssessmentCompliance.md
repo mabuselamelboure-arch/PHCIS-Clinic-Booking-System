@@ -28,7 +28,7 @@ Status describes implemented scope; execution evidence is separated from source 
 | HttpClient / 2 | Recommended; adopted | BookingApiClient; PatientSession | Actual same-origin browser/API calls | None |
 | ASP.NET Core Web API / 2 | Recommended; adopted | Api minimal endpoints | API tests and runtime | None |
 | EF Core / 2 | Recommended; adopted | BookingDbContext | Real relational persistence | None |
-| AutoMapper / 2 | Recommended overview tool; deliberate alternative | Explicit DTO projections | Four small public contract types remain easy to inspect; no mapping infrastructure needed | Not installed; deviation explicit |
+| AutoMapper / 2 | Recommended overview tool; deliberate alternative | Explicit DTO projections | Small typed contracts and straightforward projections remain easy to inspect; no mapping infrastructure needed | Not installed; deviation explicit |
 | FluentValidation business rules / 2 | Recommended; adopted | Validator and BookingService | Inputs validated; existence/expiry/ownership/integrity enforced server-side | None |
 | Serilog or NLog / 2 | Recommended alternatives; Serilog adopted | Program/appsettings | Structured runtime logging; no sensitive EF logging | None |
 | SQL Server or PostgreSQL / 2 | Recommended alternatives; SQL Server selected for assessed persistence | SQL Server provider and migrations | Dedicated live database, FK/unique/transaction/concurrency execution | PostgreSQL unnecessary |

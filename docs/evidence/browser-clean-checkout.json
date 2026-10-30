@@ -1,0 +1,14 @@
+{
+  "provider": "fresh SQLite demo",
+  "host": "fresh local clone, Release build",
+  "commit": "b1691c9cc553ea2f81d746cde010ddceddf96df8",
+  "stats": {
+    "startTime": "2026-10-30T09:07:03.984Z",
+    "duration": 31040.697,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "trackedWorkingTreeAfterTests": "clean"
+}

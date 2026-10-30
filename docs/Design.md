@@ -23,7 +23,7 @@ The host uses .NET 10 MapStaticAssets endpoint aliases for the stable Blazor boo
 
 ```mermaid
 erDiagram
-    IDENTITY_USER ||--o{ PATIENT : owns
+    IDENTITY_USER |o--o{ PATIENT : owns
     PATIENT ||--o{ APPOINTMENT : books
     CLINIC ||--o{ TIME_SLOT : offers
     TIME_SLOT ||--o| APPOINTMENT : reserves

@@ -2,6 +2,8 @@
 
 Senior developer assessment: standalone **Blazor WebAssembly**, **ASP.NET Core Web API**, **SQL Server**, Identity/JWT, shared FluentValidation, MudBlazor and EF Core. A development-only SQLite mode enables a self-contained demonstration.
 
+Verified locally: Release build with zero warnings/errors, 36 .NET tests with SQL Server, and eight Chromium scenarios across published SQL Server, Docker and fresh-checkout demo runs. A fresh local clone completed the documented setup; this is not a pristine-machine or hosted CI claim.
+
 Start with docs/AssessmentCompliance.md for the attributed assessment scope, docs/Design.md for architecture/ERD/sequence diagrams, and docs/Validation.md for measured execution evidence and limitations.
 
 ## Prerequisites

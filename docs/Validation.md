@@ -1,60 +1,92 @@
-# Validation record
+# Verification and handover record
 
-Validated on 30 October 2026.
+Date: 30 October 2026, Africa/Johannesburg. These are executed results, not estimated completion. No external source repository or hosted CI run was created.
 
-- Solution build: passed with zero warnings and zero errors.
-- Focused xUnit suite: 28 passed, zero failed, zero skipped.
-- EF migration consistency: no pending model changes.
-- SQL Server InitialCreate migration: generated and indexes/foreign keys reviewed; not applied to a SQL Server instance.
-- Running local SQLite demo: home, app stylesheet, MudBlazor stylesheet/script, Blazor bootstrap, and Development OpenAPI document returned HTTP 200.
-- Real HTTP booking against the local demo: HTTP 201 with a UTC timestamp and confirmation; repeated booking returned HTTP 409; booked slot disappeared from availability.
-- Automated tests cover validation, SAST day boundaries, explicit UTC serialization, availability, atomic persistence/rollback, database uniqueness, deterministic competing booking, repeatable seeding, HTTP errors and hosted component assets.
-- No external SQL Server service, email/SMS provider, payment provider or scheduler was started.
+## Final measured results
 
-## Outstanding checks
+| Check | Executed result |
+|---|---|
+| Existing baseline before changes | Debug build: 0 warnings/errors; original 28 tests passed |
+| Final application Release build | 0 warnings, 0 errors |
+| Expanded .NET suite with SQL Server enabled | 36 passed, 0 failed, 0 skipped |
+| SQL Server migrations | InitialCreate and AddPatientIdentity applied; no pending model changes |
+| Real SQL Server simultaneous HTTP booking | Both requests gated after prechecks; exactly one 201 and one 409 |
+| SQL Server integrity | One booking/patient in isolated race; unique-key rollback and FK errors executed |
+| Identity/JWT | Real registration/login, lockout, token expiry/audience/signature, anonymous rejection and cross-owner protection passed |
+| Build-path Chromium against SQL Server | 8 passed, 0 failed |
+| Published Windows Release app against SQL Server | 8 passed, 0 failed; actual WASM execution |
+| Linux Docker published app with disposable SQLite | 8 passed, 0 failed; runtime UID 1654 |
+| Fresh local clone on this workstation | Tool/locked restore, Release build, 36 tests, publish, npm ci, Chromium install and 8 browser tests passed |
+| Fresh-clone tracked working tree after tests | Clean |
+| Diagrams | Architecture, ERD and sequence rendered to SVG/PNG and visually inspected |
+| CI | Workflow authored/reviewed; hosted execution unverified because no remote/run was authorized |
 
-- Browser interaction, visual layout, keyboard behavior and narrow viewport checks: not executed. Both available browser automation tools failed to initialize on this host. HTTP asset checks are not a substitute for browser execution.
-- Apply migrations and validate the booking/concurrency flow on a dedicated SQL Server assessment database. SQLite tests do not verify SQL Server-specific exception behavior or locking.
-- Resolve the assessment's authentication/authorization, cancellation/rescheduling, CI and Docker expectations before treating the submission as complete.
+SDK 10.0.403 is pinned; all projects target net10.0 and Microsoft runtime/framework packages are 10.0.14. Docker runtime is 10.0.14. Browser tooling is Playwright 1.64.1 with its installed Chromium; Mermaid 12.2.0 renders the diagrams. npm ci reported zero vulnerabilities at execution time; this is not a full security audit.
 
-See README.md for run instructions and the manual review checklist. The disposable local demo database contains fictional bookings from the HTTP verification.
+## SQL Server evidence
 
-## SQL Server foundation milestone
+A running instance was discovered using Windows authentication. Product version: 16.0.1210.3. Dedicated assessment database: PHCIS_Assessment_20261030_617d64da. No unrelated database was reused or modified.
 
-The original suite was rerun: build 0 warnings/errors, 28 passed. A provider-specific opt-in test now executes migrations against a fresh owned SQL Server database, two genuinely concurrent HTTP requests gated after both availability checks, 201/409 outcomes, confirmation UTC, availability removal, one patient/appointment, duplicate-key rollback (2601/2627), and foreign-key error 547. Result: 29 passed, 0 failed, 0 skipped with PHCIS_SQLSERVER configured. Each test-created database is uniquely named and cleaned up only after ownership-prefix/length validation.
+Both migrations are present in __EFMigrationsHistory. Final read-only inspection after browser runs found 8 appointments, zero duplicate TimeSlotId groups and zero Patient rows without an appointment. All data is fictional.
 
-Two development runs failed on a test-fixture expectation (expected two clinics but seed plus fixture create three). The expectation was corrected; no product defect was involved. One initial rebuild failed because the old demo process locked its binaries; that process was stopped before rebuilding.
+SqlServerTests creates a new PHCIS_Assessment_Test_ GUID database per fixture, applies actual migrations and dispatches genuinely concurrent HTTP requests. A test interceptor holds each request before saving until both have passed availability checks. Assertions execute 201/409 results, UTC confirmation and owned confirmation retrieval, availability removal, one persisted appointment/patient, unique-index failure 2601/2627 with rollback, and FK failure 547. Cleanup only deletes its generated database after checking its ownership prefix and length. This verifies correctness, not throughput/load capacity.
 
-## Identity and domain milestone
+## Commands executed
 
-Release suite executed against SQL Server plus isolated SQLite: 36 passed, 0 failed, 0 skipped. Original 28 scenarios remain. Added real Identity registration/login, password policy/lockout, JWT signature/audience/expiry rejection, anonymous rejection, confirmation ownership, clinic/slot mismatch, and unexpected database-failure propagation. A test-only claim scheme keeps legacy booking scenarios focused; separate security tests use the actual JWT middleware.
+From C:/Assessment, with externally supplied SQL configuration where required:
 
-Patient ownership derives from the validated subject, never a request patient ID. Identity uses its standard password hasher. Tokens last 15 minutes and are held only in client memory; development/test keys are random and ephemeral. Production requires externally configured random signing material. No staff/admin workflows or invented roles are added. A new SQLite demo filename preserves the older anonymous demo database.
+~~~powershell
+dotnet build PHCIS.sln --nologo
+dotnet test tests/PHCIS.Tests --no-build --nologo
+dotnet test tests/PHCIS.Tests -c Release --nologo
+dotnet test tests/PHCIS.Tests -c Release --no-build --nologo
+dotnet ef database update --project src/PHCIS.Api --no-build
+dotnet ef database update --project src/PHCIS.Api --configuration Release --no-build
+dotnet ef migrations has-pending-model-changes --project src/PHCIS.Api --configuration Release --no-build
+dotnet build PHCIS.sln -c Release --no-restore --nologo
+dotnet publish src/PHCIS.Api -c Release --no-build --no-restore -o artifacts/publish
+docker build -t phcis-assessment:local .
+~~~
 
-One new failure-injection test initially severed an EF required navigation and failed before database execution; the fixture was corrected to exercise an actual foreign-key violation instead. It now verifies rollback and that an unexpected failure is not converted into 409.
+From tests/PHCIS.BrowserTests:
 
-## Browser milestone
+~~~powershell
+npm ci --no-fund
+npx playwright install chromium
+npm test
+npm test -- --grep 'booking validation'
+npm run diagrams
+~~~
 
-Independent Playwright 1.64.1 with Chromium executed the Release app against the dedicated SQL Server database: 8 passed, 0 failed. This verifies real WASM execution, account creation, clinic/date/slot selection, invalid input correction, one POST on double click, confirmation/focus, availability refresh, two tabs yielding 201/409, stale responses, API recovery, mobile keyboard order/no horizontal overflow, JWT-expiry recovery, empty dates and no console/component-asset errors. Screenshots and a sanitized result summary are in docs/evidence.
+PHCIS_BROWSER_URL selected the running SQL Server app, published SQL Server app or container for each eight-scenario run. Without it, the harness started its own new SQLite demo file and stopped the server afterward. Routine evidence is ignored under work/; PHCIS_CAPTURE_EVIDENCE intentionally refreshes reviewed screenshots.
 
-Initial browser runs had a duplicate test locator, then exposed a real layout shift: blur removed validation messages during mousedown, moving the submit button before mouseup. The fix shows only inline booking errors, stops each property at its first validation error, and reserves message space. The regression now passes without adding a blur workaround. A narrow-layout sign-out wrap was fixed; theme colors now match the existing clinic branding. All three Mermaid diagrams rendered successfully and their PNGs were visually inspected.
+## Fresh local checkout
 
-Release suite was rerun after the validation change: 36 passed, 0 failed, 0 skipped; migration consistency check reports no pending changes.
+A local clone was created using git clone --no-hardlinks into ignored work/clean-checkout-bb85efc. It built the bb85efc application revision, then fast-forwarded to b1691c9 for the evidence-output-path correction. git diff bb85efc HEAD -- src tests/PHCIS.Tests was empty: no compiled application or .NET test sources changed between these revisions.
 
-## Published-host regression
+Executed there: tool restore, locked NuGet restore, Release build, 36 .NET tests with SQL Server enabled, publish, npm ci, Chromium installation and eight browser scenarios using an automatically started new SQLite database. Final git status --short was empty. This proves a fresh checkout on this workstation with installed prerequisites/caches, not a pristine operating-system installation.
 
-A real published-app run caught an unresolved bootstrap fingerprint placeholder: HTML/API responded, but WASM never initialized. Adding static endpoints while retaining the legacy framework middleware exposed a second pipeline conflict (HTTP 500 in its framework branch). The source now uses a stable bootstrap alias and .NET 10 MapStaticAssets without that legacy branch. No generated files were patched. The hosted-assets regression asserts that the bootstrap alias returns 200 and index HTML has no unresolved placeholder.
+## Browser coverage
 
-After the fix: Release suite 36 passed/0 failed/0 skipped; Windows published application against SQL Server, Chromium 8 passed/0 failed. The earlier published startup test timed out and its remaining run was stopped for diagnosis; it was never counted as verified. Published WASM is now actually executed, not inferred from HTML delivery.
+Eight scenarios cover registration, clinic/date/slot selection, missing/invalid input and correction, double-click suppression, saved confirmation/focus, refreshed availability, two-tab competition, stale responses after rapid clinic/date changes, API unavailability/recovery, keyboard order, mobile width, console errors, MudBlazor assets, expired-session recovery and empty dates.
 
-## Packaging baseline
+Reviewed PNG/SVG files and sanitized provider-specific summaries are in docs/evidence. No credential-bearing traces are recorded. Actual successful UI submission and confirmation establish framework execution; an HTTP 200 index page alone is not counted.
 
-The final SDK is pinned to 10.0.403 in global.json, GitHub Actions and Docker; runtime image is pinned to 10.0.14. NuGet and npm lock files are committed. Release publish succeeds. The final Docker image builds from locked dependencies and its runtime process uses non-root UID 1654. A restore-layer optimization initially omitted source inputs that influence Blazor implicit packages and failed NU1004; Docker now restores with the full source tree and a package-cache mount.
+## Failures corrected
 
-README now documents dedicated SQL setup, migrations, secure configuration, Identity/JWT limitations, demo startup, tests, published execution, container network/auth requirements and troubleshooting. GitHub Actions defines isolated SQL Server, Release tests/publish, Chromium and Docker verification. No remote repository was created and hosted CI execution is not claimed. Container browser and fresh-clone evidence will be added after execution.
+- Initial build found advisories in transitive PKCS 9.0.11; patched 10.0.14 was pinned, without suppression.
+- An old API process locked Windows rebuild binaries; only that assessment process was stopped.
+- The SQL fixture expected two clinics while its own fixture plus seed created three; its assertion was corrected.
+- Failure injection initially severed a required EF navigation before database execution; the fixture now injects an actual invalid identity FK and verifies propagation/rollback.
+- An initial browser locator matched both summary and inline errors; it was narrowed.
+- A real validation layout shift removed errors during mousedown/blur and moved the button before mouseup. Single-error cascade, inline-only booking errors and reserved space fix it; the original double-click regression passes without a blur workaround.
+- Published HTML retained an unresolved bootstrap fingerprint placeholder. A partial fix conflicted with legacy UseBlazorFrameworkFiles and returned 500. The final host uses MapStaticAssets aliases and a stable bootstrap URL. Both the asset regression and actual published Chromium suite pass. Early published startup tests failed/timed out; the remaining run was stopped for diagnosis and was not counted as verified.
+- Docker restore optimization omitted static-asset source inputs and failed NU1004. Full-source restore with a package-cache mount fixed it; the final pinned image built and executed eight browser scenarios.
+- One EF CLI invocation used -c, which selects a DbContext, instead of --configuration; it was corrected before database application.
+- Earlier HTTP harness errors used PowerShell's reserved HOME variable and misread automatic JSON DateTime conversion; these were corrected, not product defects.
 
-## Container execution
+## Remaining boundaries
 
-Final pinned Dockerfile built successfully. Container ran on localhost only as UID 1654 with a disposable SQLite demo. All eight Chromium scenarios passed (0 failed), including actual published WASM, Identity registration and two-tab 201/409 competition. Sanitized summary: docs/evidence/browser-container.json. Linux-container SQL Server authentication was not claimed: the host uses Windows authentication, while SQL Server execution was separately verified natively.
+No unresolved blocker remains for the explicitly bounded assessment workflow. Hosted GitHub Actions execution remains unverified. Linux Docker-to-SQL Server authentication/network setup was not executed: native Windows-authenticated SQL Server and Linux-container SQLite were independently verified.
 
-Ordinary browser runs now write screenshots to ignored work/evidence; explicit PHCIS_CAPTURE_EVIDENCE refreshes reviewed documentation images. This prevents routine tests from changing tracked deliverables.
+AutoMapper/Moq deviations, illustrative cancellation/rescheduling, excluded page-three integrations and security limits are explicit in AssessmentCompliance.md, Requirements.md and README. No email verification/recovery, MFA, refresh tokens, immediate JWT revocation, clinical operations certification, or load/scalability guarantee is claimed. Deployment requires its own TLS, durable secrets, hostname and database access configuration.
