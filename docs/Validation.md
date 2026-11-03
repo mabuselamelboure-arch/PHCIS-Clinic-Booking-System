@@ -87,7 +87,7 @@ Reviewed PNG/SVG files and sanitized provider-specific summaries are in docs/evi
 
 ## Remaining boundaries
 
-No unresolved blocker remains for the explicitly bounded assessment workflow. Hosted GitHub Actions execution remains unverified. Linux Docker-to-SQL Server authentication/network setup was not executed: native Windows-authenticated SQL Server and Linux-container SQLite were independently verified.
+No unresolved blocker remains for the explicitly bounded assessment workflow. Hosted execution was unverified at the initial handover; see the final publication results below. Linux Docker-to-SQL Server authentication/network setup was not executed: native Windows-authenticated SQL Server and Linux-container SQLite were independently verified.
 
 AutoMapper/Moq deviations, illustrative cancellation/rescheduling, excluded page-three integrations and security limits are explicit in AssessmentCompliance.md, Requirements.md and README. No email verification/recovery, MFA, refresh tokens, immediate JWT revocation, clinical operations certification, or load/scalability guarantee is claimed. Deployment requires its own TLS, durable secrets, hostname and database access configuration.
 
@@ -125,3 +125,15 @@ The latest named fictional patient verification remains recorded in the follow-u
 Hosted CI and unauthenticated public-access results are reported separately after repository publication; local execution alone is not a hosted pass.
 
 Published-output verification: the fresh artifacts/publication host at localhost:5086 completed all nine Chromium tests (9 passed/0 failed), including real registration/booking and account-validation correction. Health and stable Blazor bootstrap URLs returned HTTP 200. This used a separate disposable SQLite database and did not alter the running SQL Server demonstration.
+
+## Public repository and hosted verification
+
+Public repository: [mabuselamelboure-arch/PHCIS-Clinic-Booking-System](https://github.com/mabuselamelboure-arch/PHCIS-Clinic-Booking-System).
+
+GitHub confirmed [assessment run 41576534782](https://github.com/mabuselamelboure-arch/PHCIS-Clinic-Booking-System/actions/runs/41576534782) **success** on publication commit `371d970da3f461f8e0326fa9e819400ecbaf8884`. All workflow steps passed: isolated SQL Server startup, locked restore, Release build, SQL-enabled .NET tests, publish, Chromium regression, Docker build and evidence upload. Counts in the hosted log: 36 .NET tests passed/0 failed/0 skipped and 9 browser tests passed. This is an actual hosted execution, separate from earlier local evidence. The README badge links to the workflow's current status; the documentation-only handover commit triggers another complete run.
+
+Unauthenticated HTTP requests (no Authorization headers or cookies) returned 200 for the repository homepage, README, API source, design, requirements, compliance, validation, evidence directory and all six PNG/SVG diagram files. The homepage exposes Download ZIP; the anonymous ZIP download succeeded and contained PHCIS.sln, with no work directory, node_modules or database files. These checks were performed after the initial push on 3 November 2026.
+
+All ten commits reachable at the initial push passed the final redacted Gitleaks scan with zero findings; original history was preserved. Screenshots contain fictional demonstration data only. Credentials, JWTs, signing keys, credential-bearing connection strings, databases and build/scratch outputs were not published. No scanner protection was bypassed. This statement records the audit outcome rather than a guarantee against an undiscovered secret.
+
+Remaining limitations are unchanged: no cancellation/rescheduling, appointment-history UI, email verification/recovery, MFA, refresh tokens or immediate JWT revocation. Linux-container SQL authentication/network integration remains untested locally; hosted SQL Server integration and Docker image build passed independently. Real deployment requires its own TLS, secrets and database configuration.

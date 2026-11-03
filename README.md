@@ -1,5 +1,7 @@
 # PHCIS Clinic Booking System
 
+[![Assessment verification](https://github.com/mabuselamelboure-arch/PHCIS-Clinic-Booking-System/actions/workflows/assessment.yml/badge.svg)](https://github.com/mabuselamelboure-arch/PHCIS-Clinic-Booking-System/actions/workflows/assessment.yml)
+
 Senior developer assessment: standalone **Blazor WebAssembly**, **ASP.NET Core Web API**, **SQL Server**, Identity/JWT, shared FluentValidation, MudBlazor and EF Core. A development-only SQLite mode enables a self-contained demonstration.
 
 Verified locally: Release build with zero warnings/errors, 36 .NET tests with SQL Server, and nine Chromium scenarios on the current regression suite. Earlier eight-scenario runs covered published SQL Server, Docker and fresh-checkout demos. A fresh local clone completed the documented setup; this is not a pristine-machine or hosted CI claim.
