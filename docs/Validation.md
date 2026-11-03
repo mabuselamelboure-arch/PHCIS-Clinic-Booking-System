@@ -1,8 +1,8 @@
 # Verification and handover record
 
-Date: 30 October 2026, Africa/Johannesburg. These are executed results, not estimated completion. No external source repository or hosted CI run was created.
+Initial evidence: 30 October 2026, Africa/Johannesburg. Historical results below are retained separately from the final publication verification. These are executed results, not estimated completion.
 
-## Final measured results
+## Historical measured results
 
 | Check | Executed result |
 |---|---|
@@ -68,7 +68,7 @@ Executed there: tool restore, locked NuGet restore, Release build, 36 .NET tests
 
 ## Browser coverage
 
-Eight scenarios cover registration, clinic/date/slot selection, missing/invalid input and correction, double-click suppression, saved confirmation/focus, refreshed availability, two-tab competition, stale responses after rapid clinic/date changes, API unavailability/recovery, keyboard order, mobile width, console errors, MudBlazor assets, expired-session recovery and empty dates.
+The original eight scenarios cover registration, clinic/date/slot selection, missing/invalid input and correction, double-click suppression, saved confirmation/focus, refreshed availability, two-tab competition, stale responses after rapid clinic/date changes, API unavailability/recovery, keyboard order, mobile width, console errors, MudBlazor assets, expired-session recovery and empty dates.
 
 Reviewed PNG/SVG files and sanitized provider-specific summaries are in docs/evidence. No credential-bearing traces are recorded. Actual successful UI submission and confirmation establish framework execution; an HTTP 200 index page alone is not counted.
 
@@ -98,3 +98,30 @@ A requested fictional account was registered through the browser and checked in 
 Executed after the fix: Release build 0 warnings/errors; AuthenticationTests 6 passed/0 failed/0 skipped; Chromium suite 9 passed/0 failed. The corrected published app then completed named fictional patient registration, SQL Identity persistence/hash-presence checks, browser login/booking/sign-out/re-login, linked SQL booking/ownership records, slot removal, own confirmation HTTP 200, other authenticated user HTTP 404 and anonymous HTTP 401. Browser console/assets, keyboard order, confirmation focus and mobile overflow checks passed. Own retrieval after re-login was verified via authenticated API; no history/lookup UI is claimed.
 
 A separate verifier command-line error and process interruption required regeneration of only that fictional test account's password via standard Identity reset. No SQL account insert or custom hashing was used; plaintext credentials stayed in process memory/standard input, never Git/logs/screenshots. Named-patient evidence is outside the repository in the task output directory. No schema, package or backend authentication change was needed. Earlier 36-test and container/clean-checkout counts above remain historical evidence; this follow-up reran the relevant six authentication and nine browser tests.
+
+## Final publication verification — 3 November 2026
+
+Before publication, Gitleaks 8.30.1 (download checksum verified) scanned all nine original reachable commits and a tracked-file archive: zero findings. Additional credential-pattern inspection covered all 125 reachable file blobs. Every historical PNG was visually reviewed; committed patient/account evidence is fictional and contains no visible passwords/tokens. No database files, build outputs, local secrets or scratch files are tracked. Ignore rules were checked for databases, local configuration, environment files, dependencies and output directories. This audit cannot prove the absence of every possible undiscovered secret.
+
+The sequence diagram now routes database/service responses through the API. All three Mermaid diagrams rendered successfully to PNG/SVG and were visually inspected. README's nine PowerShell blocks parsed without syntax errors and all relative documentation links resolved. The original assessment PDF was re-read: the compliance matrix preserves the page-one tasks, page-two technology overview/deviations and explicitly optional page-three features. Cancellation/rescheduling remain explicit future scope.
+
+Executed from the repository root:
+
+```powershell
+dotnet tool restore
+dotnet restore PHCIS.sln --locked-mode
+dotnet build PHCIS.sln -c Release --no-restore --nologo
+# PHCIS_SQLSERVER supplied externally using Windows authentication.
+dotnet test tests/PHCIS.Tests -c Release --no-build --nologo --logger 'trx;LogFileName=publication.trx'
+dotnet publish src/PHCIS.Api -c Release --no-build --no-restore -o artifacts/publication
+```
+
+Results: locked restore passed; final ordered Release build 0 warnings/0 errors; complete SQL-enabled suite 36 passed/0 failed/0 skipped; publish succeeded. An initial overlapping build/test invocation caused transient Windows copy-lock warnings; the final build and tests above ran in order and passed cleanly. No application code changed during publication preparation.
+
+From tests/PHCIS.BrowserTests: npm ci --no-fund (zero reported vulnerabilities), npx playwright install chromium, npm test (9 passed/0 failed), npm run diagrams (all three rendered). Browser tests used a fresh, disposable SQLite database, leaving historical SQL Server/Docker eight-scenario results attributed above.
+
+The latest named fictional patient verification remains recorded in the follow-up section: browser registration and re-login, Identity persistence, booking/ownership records, owner 200, other patient 404 and anonymous 401. No credentials or named-patient output files were added to Git.
+
+Hosted CI and unauthenticated public-access results are reported separately after repository publication; local execution alone is not a hosted pass.
+
+Published-output verification: the fresh artifacts/publication host at localhost:5086 completed all nine Chromium tests (9 passed/0 failed), including real registration/booking and account-validation correction. Health and stable Blazor bootstrap URLs returned HTTP 200. This used a separate disposable SQLite database and did not alter the running SQL Server demonstration.

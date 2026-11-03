@@ -2,9 +2,9 @@
 
 Senior developer assessment: standalone **Blazor WebAssembly**, **ASP.NET Core Web API**, **SQL Server**, Identity/JWT, shared FluentValidation, MudBlazor and EF Core. A development-only SQLite mode enables a self-contained demonstration.
 
-Verified locally: Release build with zero warnings/errors, 36 .NET tests with SQL Server, and eight Chromium scenarios across published SQL Server, Docker and fresh-checkout demo runs. A fresh local clone completed the documented setup; this is not a pristine-machine or hosted CI claim.
+Verified locally: Release build with zero warnings/errors, 36 .NET tests with SQL Server, and nine Chromium scenarios on the current regression suite. Earlier eight-scenario runs covered published SQL Server, Docker and fresh-checkout demos. A fresh local clone completed the documented setup; this is not a pristine-machine or hosted CI claim.
 
-Start with docs/AssessmentCompliance.md for the attributed assessment scope, docs/Design.md for architecture/ERD/sequence diagrams, and docs/Validation.md for measured execution evidence and limitations.
+Start with [assessment compliance](docs/AssessmentCompliance.md), [requirements](docs/Requirements.md), [system design](docs/Design.md) and [validation evidence](docs/Validation.md). Rendered diagrams: [architecture](docs/evidence/architecture.png), [ERD](docs/evidence/erd.png) and [booking sequence](docs/evidence/booking-sequence.png); matching SVG files are in [evidence](docs/evidence).
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ dotnet build PHCIS.sln -c Release --no-restore
 dotnet run --project src/PHCIS.Api --launch-profile http -c Release --no-build -- --demo-local
 ```
 
-Open http://localhost:5080. Choose **Create an account**, enter a fictional email and a new password with at least 10 characters, uppercase, lowercase, a digit and a symbol. No demonstration password or privileged account is seeded. Select a clinic and future weekday, choose a slot, enter fictional patient details, and confirm. Keep the confirmation reference.
+Open [http://localhost:5080](http://localhost:5080). Choose **Create an account**, enter a fictional email and a new password with at least 10 characters, uppercase, lowercase, a digit and a symbol. No demonstration password or privileged account is seeded. Select a clinic and future weekday, choose a slot, enter fictional patient details, and confirm. Keep the confirmation reference.
 
 Demo mode is restricted to Development. It explicitly creates/seeds `src/PHCIS.Api/clinic-demo-auth.db`; the earlier anonymous `clinic-demo.db` is preserved. Demo slots are 30 minutes on weekdays from 08:00 to 14:00 SAST over the next 14 calendar days. Re-running seed extends the rolling window without duplicating slots. A 90-day search horizon does not guarantee slots beyond the seed window. Ctrl+C stops the app. Only one process should use a given demo file. `DemoDatabasePath` can point to a new disposable file, as the browser harness does under ignored work/.
 
@@ -96,7 +96,7 @@ npm test
 npm run diagrams
 ```
 
-The default harness starts the existing Release build at port 5085 in Development, using a new SQLite file under work/. It creates fictional accounts, verifies eight browser scenarios, and stops its server. For an already running assessment app, set `PHCIS_BROWSER_URL` to its URL; the harness then leaves server lifecycle to you. Do not target real patient data. Browser requests will create fictional accounts/bookings. Server account rate limiting remains active; use a new test server/window if repeatedly running account-heavy tests. Committed review screenshots are in docs/evidence. Ordinary test screenshots go to ignored work/evidence so test runs do not dirty tracked files. Set PHCIS_CAPTURE_EVIDENCE=1 only when intentionally refreshing the reviewed screenshots; transient results stay ignored. No credential-bearing traces are recorded.
+The default harness starts the existing Release build at port 5085 in Development, using a new SQLite file under work/. It creates fictional accounts, verifies nine browser scenarios, and stops its server. For an already running assessment app, set `PHCIS_BROWSER_URL` to its URL; the harness then leaves server lifecycle to you. Do not target real patient data. Browser requests will create fictional accounts/bookings. Server account rate limiting remains active; use a new test server/window if repeatedly running account-heavy tests. Committed review screenshots are in docs/evidence. Ordinary test screenshots go to ignored work/evidence so test runs do not dirty tracked files. Set PHCIS_CAPTURE_EVIDENCE=1 only when intentionally refreshing the reviewed screenshots; transient results stay ignored. No credential-bearing traces are recorded.
 
 ## Publish and run
 
@@ -129,7 +129,7 @@ This explicitly runs a disposable SQLite demo as a non-root Linux user. For pers
 
 ## CI
 
-`.github/workflows/assessment.yml` restores locked dependencies, builds/tests Release, provisions an isolated SQL Server container with an ephemeral generated password, publishes, runs Chromium tests, builds Docker and uploads evidence. No remote repository or workflow run has been created. Local execution evidence does not claim a hosted CI run passed.
+`.github/workflows/assessment.yml` restores locked dependencies, builds/tests Release, provisions an isolated SQL Server container with an ephemeral generated password, publishes, runs Chromium tests, builds Docker and uploads evidence. Hosted workflow results and publication verification are recorded in [Validation.md](docs/Validation.md); local results alone do not establish a hosted pass.
 
 ## API
 
@@ -160,4 +160,4 @@ Booking JSON properties: `clinicId` (optional backward-compatible consistency ch
 
 ## Deliberate scope choices
 
-The PDF's cancellation/rescheduling entries are illustrative requirements-analysis examples; no such workflow is claimed. Page-three reminders/calendar/SignalR/GraphQL and optional Dapper are excluded. Explicit mapping replaces AutoMapper for the small DTO surface. Real relational tests/fixed clocks replace unnecessary mocks; Moq is not added solely to reference it. See AssessmentCompliance.md for the full classification.
+The PDF's cancellation/rescheduling entries are illustrative requirements-analysis examples; no such workflow is claimed. Page-three reminders/calendar/SignalR/GraphQL and optional Dapper are excluded. Explicit mapping replaces AutoMapper for the small DTO surface. Real relational tests/fixed clocks replace unnecessary mocks; Moq is not added solely to reference it. See [AssessmentCompliance.md](docs/AssessmentCompliance.md) for the full classification.

@@ -70,11 +70,13 @@ sequenceDiagram
     participant API as API and JWT middleware
     participant Service as Booking service
     participant DB as SQL Server
-    Patient->>API: Register or sign in using Identity
+    Patient->>UI: Enter account credentials
+    UI->>API: Register or sign in using Identity
     API-->>UI: JWT with 15-minute expiry
     UI->>API: Query clinic and SAST-date availability
     API->>DB: Future unbooked slots
-    DB-->>UI: Slot DTOs with UTC times
+    DB-->>API: Available slot records
+    API-->>UI: Slot DTOs with UTC times
     Patient->>UI: Select slot and enter details
     UI->>UI: Shared validation
     UI->>API: POST appointment with JWT
@@ -84,10 +86,12 @@ sequenceDiagram
     Service->>DB: Insert patient and appointment atomically
     alt Unique slot still free
         DB-->>Service: Commit
-        Service-->>UI: 201 confirmation
+        Service-->>API: Booking confirmation
+        API-->>UI: 201 confirmation
     else Competing transaction wins
         DB-->>Service: Duplicate-key failure and rollback
-        Service-->>UI: 409 conflict
+        Service-->>API: Slot conflict
+        API-->>UI: 409 conflict
         UI->>API: Refresh availability
     end
 ```

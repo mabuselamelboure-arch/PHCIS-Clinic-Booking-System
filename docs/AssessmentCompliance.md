@@ -38,8 +38,8 @@ Status describes implemented scope; execution evidence is separated from source 
 | JWT secure API access / 2 | Recommended; adopted | JwtBearer; PatientSession; RequireAuthorization | Signature/audience/expiry, anonymous and cross-owner rejection | Production secret/TLS hosting must be supplied |
 | xUnit or NUnit / 2 | Recommended alternatives; xUnit adopted | PHCIS.Tests | 36-case executed Release suite with SQL opt-in enabled | None |
 | Moq / 2 | Recommended mocking tool; no mock requirement implied | Not used | Real relational DB, fixed clock and failure interceptors are meaningful; no dummy mock added | Deliberate deviation |
-| Playwright or bUnit / 2 | Recommended alternatives; Playwright adopted | PHCIS.BrowserTests | Eight Chromium scenarios against SQL Server; screenshots/result summary | Packaging provider runs tracked in Validation.md |
-| GitHub Actions or Azure DevOps / 2 | Recommended alternatives; GitHub Actions adopted | .github/workflows/assessment.yml | Restore/Release/test/SQL/browser/publish/Docker definition | Hosted execution unverified; no remote authorized |
+| Playwright or bUnit / 2 | Recommended alternatives; Playwright adopted | PHCIS.BrowserTests | Nine current Chromium scenarios; earlier eight-scenario SQL Server runs and screenshots/result summaries | Packaging provider runs tracked in Validation.md |
+| GitHub Actions or Azure DevOps / 2 | Recommended alternatives; GitHub Actions adopted | .github/workflows/assessment.yml | Restore/Release/test/SQL/browser/publish/Docker definition | Publication and hosted results recorded separately in Validation.md |
 | Docker / 2 | Recommended; adopted | Dockerfile; .dockerignore | Local image build; final runtime results in Validation.md | External SQL credentials/network/TLS are deployer configuration |
 | Swagger/OpenAPI / 2 | Recommended alternatives; OpenAPI adopted | /openapi/v1.json in Development | JSON endpoint executed | Swagger UI unnecessary |
 | Twilio/SendGrid reminders / 3 | Explicitly optional; excluded | Not implemented | No provider calls | None |
