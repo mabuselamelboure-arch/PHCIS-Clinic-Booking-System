@@ -99,7 +99,7 @@ Executed after the fix: Release build 0 warnings/errors; AuthenticationTests 6 p
 
 A separate verifier command-line error and process interruption required regeneration of only that fictional test account's password via standard Identity reset. No SQL account insert or custom hashing was used; plaintext credentials stayed in process memory/standard input, never Git/logs/screenshots. Named-patient evidence is outside the repository in the task output directory. No schema, package or backend authentication change was needed. Earlier 36-test and container/clean-checkout counts above remain historical evidence; this follow-up reran the relevant six authentication and nine browser tests.
 
-## Final publication verification — 3 November 2026
+## Final publication verification - 3 November 2026
 
 Before publication, Gitleaks 8.30.1 (download checksum verified) scanned all nine original reachable commits and a tracked-file archive: zero findings. Additional credential-pattern inspection covered all 125 reachable file blobs. Every historical PNG was visually reviewed; committed patient/account evidence is fictional and contains no visible passwords/tokens. No database files, build outputs, local secrets or scratch files are tracked. Ignore rules were checked for databases, local configuration, environment files, dependencies and output directories. This audit cannot prove the absence of every possible undiscovered secret.
 
